@@ -86,6 +86,14 @@ flowchart LR
    - One-click bulk cancellation of pending queues (`POST /api/v1/jobs/bulk/cancel`).
    - One-click bulk database purge of terminal jobs (`DELETE /api/v1/jobs/bulk/terminal`) with database-level cascading deletion across attempts and events.
 
+10. **End-to-End Intelligent Assistant (ForgeBot):**
+   - Multi-persona co-pilot accessible via bottom-right floating trigger or `Ctrl + /`:
+     - 🎓 **Student / Viva Prep:** Defends CS fundamentals, OS multithreading, and DBMS transaction decoupling.
+     - 🛠️ **DevOps / Operator:** Live cluster diagnostics, queue health, and one-click execution actions (Smoke test, DLQ replay, Bulk cancel).
+     - 💻 **Developer:** REST API endpoints, curl examples, JSON request schemas, and concurrency internals.
+     - 👤 **Plain English:** Accessible restaurant kitchen analogies and status checks for non-technical users.
+   - 100% embedded, offline, and self-contained (requires zero third-party AI keys or paid APIs).
+
 ---
 
 ## Quick Start
@@ -168,14 +176,14 @@ Open your browser at **[http://localhost:5173](http://localhost:5173)**.
 cd backend
 mvn clean test
 ```
-*Executes 32 tests across 7 test suites covering concurrency, bounded queues, state transitions, retry policies, delayed scheduling, bulk maintenance, and REST APIs.*
+*Executes 38 tests across 8 test suites covering concurrency, bounded queues, state transitions, retry policies, delayed scheduling, bulk maintenance, intelligent assistant endpoints, and REST APIs.*
 
 ### Frontend Tests (Vitest + React Testing Library)
 ```powershell
 cd frontend
 npm run test
 ```
-*Executes 10 unit and component tests verifying UI rendering, command palette, metrics cards, and status badges.*
+*Executes 14 unit and component tests verifying UI rendering, command palette, metrics cards, status badges, and ForgeBot assistant drawer.*
 
 ### Production Build Verification
 ```powershell

@@ -232,3 +232,56 @@ OpenAPI JSON Specification: `http://localhost:8080/api-docs`
   "timestamp": "2026-10-18T12:00:01Z"
 }
 ```
+
+---
+
+## 5. Intelligent Assistant API (`/api/v1/assistant`)
+
+### 5.1 Submit Query / Action Directive
+- **Method**: `POST /api/v1/assistant/chat`
+- **Request Body**:
+```json
+{
+  "message": "Explain the producer-consumer pattern in TaskForge",
+  "persona": "STUDENT",
+  "actionId": null
+}
+```
+*Personas: `STUDENT` (Viva prep), `OPERATOR` (DevOps & health), `DEVELOPER` (APIs & schemas), `NOVICE` (Plain English analogies).*
+- **Response** (`200 OK`):
+```json
+{
+  "reply": "### B.Tech Viva Defense: Producer-Consumer Architecture...",
+  "persona": "STUDENT",
+  "actions": [
+    {
+      "id": "SUBMIT_SAMPLE",
+      "label": "Run 5-Job Smoke Test",
+      "description": "Submit 5 compute jobs",
+      "endpoint": "/api/v1/jobs/batch",
+      "httpMethod": "POST"
+    }
+  ],
+  "systemSnapshot": {
+    "activeWorkers": 0,
+    "totalWorkers": 4,
+    "queueSize": 0,
+    "queueCapacity": 100,
+    "failedJobs": 0
+  },
+  "timestamp": "2026-11-03T14:26:30Z"
+}
+```
+
+### 5.2 Get Suggested Questions
+- **Method**: `GET /api/v1/assistant/suggestions?persona=STUDENT`
+- **Response** (`200 OK`):
+```json
+[
+  "Explain the producer-consumer pattern in JobQueue",
+  "Why is task execution outside @Transactional?",
+  "Explain the exponential backoff formula and jitter",
+  "Why Server-Sent Events instead of WebSockets?",
+  "How does crash recovery work on JVM reboot?"
+]
+```

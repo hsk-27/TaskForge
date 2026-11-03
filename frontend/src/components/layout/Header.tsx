@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   Activity,
+  Bot,
   Cpu,
   HardDrive,
   Layers,
@@ -22,6 +23,7 @@ interface HeaderProps {
   onToggleEcoMode?: () => void;
   onClearData?: () => void;
   onOpenCommandPalette?: () => void;
+  onOpenChat?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -31,6 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleEcoMode,
   onClearData,
   onOpenCommandPalette,
+  onOpenChat,
 }) => {
   const isRunning = status?.isRunning ?? false;
   const isPaused = status?.isPaused ?? false;
@@ -75,6 +78,18 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Terminal className="w-3.5 h-3.5 text-indigo-400" />
             <span className="hidden sm:inline font-mono text-[11px] text-slate-400">Ctrl+K</span>
+          </button>
+        )}
+
+        {/* Assistant Trigger */}
+        {onOpenChat && (
+          <button
+            onClick={onOpenChat}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 rounded-md transition-colors shadow-sm"
+            title="Open ForgeBot Assistant (Ctrl+/)"
+          >
+            <Bot className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="hidden sm:inline font-mono text-[11px] text-indigo-300">Ctrl+/</span>
           </button>
         )}
 

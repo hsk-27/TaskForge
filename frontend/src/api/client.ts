@@ -7,6 +7,8 @@
  * by extracting the backend's GlobalExceptionHandler JSON message and throwing a descriptive Error.
  */
 import {
+  AssistantPersona,
+  ChatResponse,
   EngineMetrics,
   EngineStatus,
   Job,
@@ -230,5 +232,21 @@ export const api = {
     return () => {
       eventSource.close();
     };
+  },
+
+  // Intelligent Assistant API
+  async sendChatMessage(
+    message: string,
+    persona: AssistantPersona = 'DEVELOPER',
+    actionId?: string
+  ): Promise<ChatResponse> {
+    return request<ChatResponse>('/assistant/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message, persona, actionId }),
+    });
+  },
+
+  async getChatSuggestions(persona: AssistantPersona = 'DEVELOPER'): Promise<string[]> {
+    return request<string[]>(`/assistant/suggestions?persona=${persona}`);
   },
 };

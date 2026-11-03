@@ -107,3 +107,43 @@ export interface PaginatedResponse<T> {
   size: number;
   number: number;
 }
+
+export type AssistantPersona = 'STUDENT' | 'OPERATOR' | 'DEVELOPER' | 'NOVICE';
+
+export interface ChatAction {
+  id: string;
+  label: string;
+  description: string;
+  endpoint: string;
+  httpMethod: string;
+}
+
+export interface ChatResponse {
+  reply: string;
+  persona: AssistantPersona;
+  actions: ChatAction[];
+  systemSnapshot: {
+    activeWorkers?: number;
+    totalWorkers?: number;
+    queueSize?: number;
+    queueCapacity?: number;
+    queuedJobs?: number;
+    runningJobs?: number;
+    succeededJobs?: number;
+    failedJobs?: number;
+    cancelledJobs?: number;
+    isPaused?: boolean;
+    [key: string]: any;
+  };
+  timestamp: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  sender: 'user' | 'assistant';
+  text: string;
+  persona?: AssistantPersona;
+  actions?: ChatAction[];
+  systemSnapshot?: Record<string, any>;
+  timestamp: Date;
+}

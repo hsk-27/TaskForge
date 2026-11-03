@@ -9,6 +9,8 @@ import { BenchmarkView } from './components/benchmark/BenchmarkView';
 import { CreateJobModal } from './components/jobs/CreateJobModal';
 import { BatchSubmitModal } from './components/jobs/BatchSubmitModal';
 import { CommandPaletteModal } from './components/common/CommandPaletteModal';
+import { ChatbotDrawer } from './components/assistant/ChatbotDrawer';
+import { ChatbotTrigger } from './components/assistant/ChatbotTrigger';
 import { EngineMetrics, EngineStatus, Job, JobEvent, PaginatedResponse } from './types';
 import { api } from './api/client';
 import { audioTelemetry } from './utils/audio';
@@ -34,10 +36,11 @@ export const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(0);
 
-  // Modals
+  // Modals & Drawers
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isBatchOpen, setIsBatchOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Fetch telemetry
   const refreshTelemetry = useCallback(async () => {
@@ -83,12 +86,15 @@ export const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [refreshTelemetry, refreshJobs]);
 
-  // Global Keyboard Shortcuts (Ctrl+K / Cmd+K)
+  // Global Keyboard Shortcuts (Ctrl+K: Command Palette, Ctrl+/: Assistant)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setIsCommandPaletteOpen((prev) => !prev);
+      } else if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+        e.preventDefault();
+        setIsChatOpen((prev) => !prev);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -273,6 +279,7 @@ export const App: React.FC = () => {
         onToggleEcoMode={handleToggleEcoMode}
         onClearData={handleClearData}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+        onOpenChat={() => setIsChatOpen(true)}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -368,6 +375,18 @@ export const App: React.FC = () => {
         onFilterChange={(st) => handleFilterChange(st)}
         isPaused={status?.isPaused ?? false}
         isEco={status?.ecoMode ?? true}
+      />
+      <ChatbotDrawer
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        onActionExecuted={() => {
+          refreshTelemetry();
+          refreshJobs();
+        }}
+      />
+      <ChatbotTrigger
+        isOpen={isChatOpen}
+        onClick={() => setIsChatOpen(true)}
       />
     </div>
   );
