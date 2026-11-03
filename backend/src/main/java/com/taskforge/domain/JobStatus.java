@@ -13,7 +13,9 @@ import java.util.Set;
  *                 └───> FAILED (terminal)
  *
  * QUEUED     ──> CANCELLED (terminal)
+ * QUEUED     ──> FAILED (terminal, prerequisite failure / unresolvable dependency)
  * RETRY_WAIT ──> CANCELLED (terminal)
+ * RETRY_WAIT ──> FAILED (terminal)
  * RUNNING    ──> CANCELLED (terminal, cooperative)
  */
 public enum JobStatus {
@@ -33,9 +35,9 @@ public enum JobStatus {
         if (this.isTerminal()) return false; // Terminal states cannot transition
 
         return switch (this) {
-            case QUEUED -> target == RUNNING || target == CANCELLED;
+            case QUEUED -> target == RUNNING || target == CANCELLED || target == FAILED;
             case RUNNING -> target == SUCCEEDED || target == FAILED || target == RETRY_WAIT || target == CANCELLED;
-            case RETRY_WAIT -> target == QUEUED || target == CANCELLED;
+            case RETRY_WAIT -> target == QUEUED || target == CANCELLED || target == FAILED;
             default -> false;
         };
     }

@@ -239,6 +239,12 @@ public class JobService {
         eventPublisher.publishEvent(job, "JOB_CANCELLED",
                 interrupted ? "Job cancelled by operator request; active worker thread interrupted"
                             : "Job cancelled by operator request");
+
+        // Transitive DAG Cancellation: Abort all downstream dependent jobs recursively
+        executionEngine.cascadeAbortDependents(id,
+                "Pipeline aborted: Prerequisite step " + id + " was cancelled by operator",
+                JobStatus.CANCELLED);
+
         return JobResponse.fromEntity(job);
     }
 
@@ -257,22 +263,26 @@ public class JobService {
 
         final String jobId = job.getId();
         final int priority = job.getPriority();
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    try {
-                        executionEngine.enqueue(jobId, priority);
-                    } catch (QueueFullException qfe) {
-                        log.warn("Job {} reset for retry but queue buffer full; drain will pick it up", jobId);
+        final boolean isReady = executionEngine.isJobReadyToRun(job);
+
+        if (isReady) {
+            if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        try {
+                            executionEngine.enqueue(jobId, priority);
+                        } catch (QueueFullException qfe) {
+                            log.warn("Job {} reset for retry but queue buffer full; drain will pick it up", jobId);
+                        }
                     }
+                });
+            } else {
+                try {
+                    executionEngine.enqueue(jobId, priority);
+                } catch (QueueFullException qfe) {
+                    log.warn("Job {} reset for retry but queue buffer full; drain will pick it up", jobId);
                 }
-            });
-        } else {
-            try {
-                executionEngine.enqueue(jobId, priority);
-            } catch (QueueFullException qfe) {
-                log.warn("Job {} reset for retry but queue buffer full; drain will pick it up", jobId);
             }
         }
 
@@ -292,17 +302,21 @@ public class JobService {
         }
 
         List<Job> toReplay = new ArrayList<>(failedJobs);
+        List<Job> readyToEnqueue = new ArrayList<>();
         for (Job job : toReplay) {
             job.resetForManualRetry();
             jobRepository.save(job);
             eventPublisher.publishEvent(job, "JOB_REPLAYED_DLQ", "Job replayed from Dead Letter Queue");
+            if (executionEngine.isJobReadyToRun(job)) {
+                readyToEnqueue.add(job);
+            }
         }
 
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    for (Job job : toReplay) {
+                    for (Job job : readyToEnqueue) {
                         try {
                             executionEngine.enqueue(job.getId(), job.getPriority());
                         } catch (QueueFullException ignored) {}
@@ -310,7 +324,7 @@ public class JobService {
                 }
             });
         } else {
-            for (Job job : toReplay) {
+            for (Job job : readyToEnqueue) {
                 try {
                     executionEngine.enqueue(job.getId(), job.getPriority());
                 } catch (QueueFullException ignored) {}
@@ -388,6 +402,7 @@ public class JobService {
     public void clearAllData() {
         log.warn("Clearing all demo data from database and in-memory queue");
         executionEngine.getQueue().clear();
+        executionEngine.resetWorkerContexts();
         attemptRepository.deleteAllInBatch();
         eventRepository.deleteAllInBatch();
         jobRepository.deleteAllInBatch();

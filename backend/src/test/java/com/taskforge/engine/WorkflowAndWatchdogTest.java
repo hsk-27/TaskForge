@@ -109,4 +109,93 @@ class WorkflowAndWatchdogTest {
         List<WorkerInfoResponse> snapshots = engine.getWorkerSnapshots();
         assertNotNull(snapshots);
     }
+
+    @Test
+    @DisplayName("ExecutionEngine extractDependsOnJobId parses parent IDs safely")
+    void testExtractDependsOnJobId() {
+        EngineProperties properties = new EngineProperties();
+        RetryPolicy retryPolicy = new RetryPolicy();
+        ExecutionEngine engine = new ExecutionEngine(
+                properties, jobRepository, attemptRepository, handlerRegistry, eventPublisher, retryPolicy, transactionManager
+        );
+
+        assertNull(engine.extractDependsOnJobId(null));
+        assertNull(engine.extractDependsOnJobId(""));
+        assertNull(engine.extractDependsOnJobId("{\"batchIndex\": 1}"));
+
+        String payload = "{\"pipelineStep\":2,\"dependsOnJobId\":\"abc-123-uuid\",\"durationMs\":60}";
+        assertEquals("abc-123-uuid", engine.extractDependsOnJobId(payload));
+
+        String spacedPayload = "{\"pipelineStep\": 2, \"dependsOnJobId\" : \"xyz-789-uuid\" }";
+        assertEquals("xyz-789-uuid", engine.extractDependsOnJobId(spacedPayload));
+    }
+
+    @Test
+    @DisplayName("isJobReadyToRun accurately guards sequential pipeline DAG steps")
+    void testIsJobReadyToRun() {
+        EngineProperties properties = new EngineProperties();
+        RetryPolicy retryPolicy = new RetryPolicy();
+        ExecutionEngine engine = new ExecutionEngine(
+                properties, jobRepository, attemptRepository, handlerRegistry, eventPublisher, retryPolicy, transactionManager
+        );
+
+        // Standalone job with no parent
+        Job standalone = new Job("standalone", JobType.COMPUTE, 0, "{}", 3);
+        assertTrue(engine.isJobReadyToRun(standalone));
+
+        // Job depending on parent
+        String parentId = "parent-001";
+        Job child = new Job("child-step2", JobType.DATA_PROCESSING, 0,
+                "{\"dependsOnJobId\":\"" + parentId + "\"}", 3);
+
+        // Case 1: Parent is still QUEUED
+        Job parentQueued = new Job("parent", JobType.COMPUTE, 0, "{}", 3);
+        parentQueued.setId(parentId);
+        org.mockito.Mockito.when(jobRepository.findById(parentId)).thenReturn(java.util.Optional.of(parentQueued));
+        assertFalse(engine.isJobReadyToRun(child));
+
+        // Case 2: Parent SUCCEEDED
+        parentQueued.markRunning("w1", null);
+        parentQueued.markSucceeded(null);
+        assertTrue(engine.isJobReadyToRun(child));
+
+        // Case 3: Parent missing / null
+        org.mockito.Mockito.when(jobRepository.findById("missing-parent")).thenReturn(java.util.Optional.empty());
+        Job childWithMissingParent = new Job("orphan", JobType.COMPUTE, 0,
+                "{\"dependsOnJobId\":\"missing-parent\"}", 3);
+        assertFalse(engine.isJobReadyToRun(childWithMissingParent));
+        assertEquals(JobStatus.FAILED, childWithMissingParent.getStatus());
+    }
+
+    @Test
+    @DisplayName("cascadeAbortDependents recursively cancels and fails entire downstream DAG tree")
+    void testCascadeAbortDependents() {
+        EngineProperties properties = new EngineProperties();
+        RetryPolicy retryPolicy = new RetryPolicy();
+        ExecutionEngine engine = new ExecutionEngine(
+                properties, jobRepository, attemptRepository, handlerRegistry, eventPublisher, retryPolicy, transactionManager
+        );
+
+        String parentId = "step-1";
+        String childId = "step-2";
+        String grandchildId = "step-3";
+
+        Job child = new Job("child", JobType.DATA_PROCESSING, 0, "{\"dependsOnJobId\":\"" + parentId + "\"}", 3);
+        child.setId(childId);
+
+        Job grandchild = new Job("grandchild", JobType.REPORT_GENERATION, 0, "{\"dependsOnJobId\":\"" + childId + "\"}", 3);
+        grandchild.setId(grandchildId);
+
+        org.mockito.Mockito.when(jobRepository.findDependentJobs(parentId)).thenReturn(List.of(child));
+        org.mockito.Mockito.when(jobRepository.findDependentJobs(childId)).thenReturn(List.of(grandchild));
+        org.mockito.Mockito.when(jobRepository.findDependentJobs(grandchildId)).thenReturn(List.of());
+
+        // Cascade failure
+        engine.cascadeAbortDependents(parentId, "Prerequisite failed", JobStatus.FAILED);
+
+        assertEquals(JobStatus.FAILED, child.getStatus());
+        assertEquals(JobStatus.FAILED, grandchild.getStatus());
+        org.mockito.Mockito.verify(jobRepository).save(child);
+        org.mockito.Mockito.verify(jobRepository).save(grandchild);
+    }
 }

@@ -25,6 +25,7 @@ class JobStatusTest {
     void testValidLifecycleTransitions() {
         assertTrue(JobStatus.QUEUED.canTransitionTo(JobStatus.RUNNING));
         assertTrue(JobStatus.QUEUED.canTransitionTo(JobStatus.CANCELLED));
+        assertTrue(JobStatus.QUEUED.canTransitionTo(JobStatus.FAILED));
 
         assertTrue(JobStatus.RUNNING.canTransitionTo(JobStatus.SUCCEEDED));
         assertTrue(JobStatus.RUNNING.canTransitionTo(JobStatus.FAILED));
@@ -33,6 +34,7 @@ class JobStatusTest {
 
         assertTrue(JobStatus.RETRY_WAIT.canTransitionTo(JobStatus.QUEUED));
         assertTrue(JobStatus.RETRY_WAIT.canTransitionTo(JobStatus.CANCELLED));
+        assertTrue(JobStatus.RETRY_WAIT.canTransitionTo(JobStatus.FAILED));
     }
 
     @Test

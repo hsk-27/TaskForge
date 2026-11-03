@@ -280,6 +280,9 @@ public class ExecutionEngine {
 
     // --- Safe Job Claiming & Execution ---
 
+    private static final java.util.regex.Pattern DEPENDS_ON_PATTERN =
+            java.util.regex.Pattern.compile("\"dependsOnJobId\"\\s*:\\s*\"([^\"]+)\"");
+
     public ClaimedJob claimJob(String jobId, String workerId) {
         return transactionTemplate.execute(status -> {
             Job job = jobRepository.findById(jobId).orElse(null);
@@ -295,7 +298,29 @@ public class ExecutionEngine {
             String parentId = extractDependsOnJobId(job.getPayload());
             if (parentId != null && !parentId.isBlank()) {
                 Job parent = jobRepository.findById(parentId).orElse(null);
-                if (parent == null || parent.getStatus() != JobStatus.SUCCEEDED) {
+                if (parent == null) {
+                    log.warn("Job {} cannot run: prerequisite job {} does not exist", jobId, parentId);
+                    job.markFailed("Prerequisite job " + parentId + " not found", Instant.now());
+                    jobRepository.save(job);
+                    eventPublisher.publishEvent(job, "JOB_FAILED", "Prerequisite job " + parentId + " not found");
+                    cascadeAbortDependents(jobId, "Prerequisite step " + jobId + " failed", JobStatus.FAILED);
+                    return null;
+                }
+                if (parent.getStatus() == JobStatus.FAILED || parent.getStatus() == JobStatus.CANCELLED) {
+                    log.warn("Job {} cannot run: prerequisite job {} is {}", jobId, parentId, parent.getStatus());
+                    JobStatus targetStatus = parent.getStatus();
+                    if (targetStatus == JobStatus.CANCELLED) {
+                        job.markCancelled();
+                        eventPublisher.publishEvent(job, "JOB_CANCELLED", "Prerequisite step " + parentId + " was cancelled");
+                    } else {
+                        job.markFailed("Prerequisite step " + parentId + " failed", Instant.now());
+                        eventPublisher.publishEvent(job, "JOB_FAILED", "Prerequisite step " + parentId + " failed");
+                    }
+                    jobRepository.save(job);
+                    cascadeAbortDependents(jobId, "Prerequisite step " + jobId + " is " + targetStatus, targetStatus);
+                    return null;
+                }
+                if (parent.getStatus() != JobStatus.SUCCEEDED) {
                     log.debug("Job {} cannot be claimed yet: waiting on prerequisite job {}", jobId, parentId);
                     return null;
                 }
@@ -342,14 +367,23 @@ public class ExecutionEngine {
             // Sequential Pipeline / DAG Workflow: Automatically unblock and enqueue downstream jobs
             List<Job> dependentJobs = jobRepository.findDependentJobs(jobId);
             for (Job dep : dependentJobs) {
-                try {
-                    boolean added = queue.offer(dep.getId(), dep.getPriority());
-                    if (added) {
-                        eventPublisher.publishEvent(dep, "JOB_UNBLOCKED",
-                                "Prerequisite step " + jobId + " succeeded; step unblocked and enqueued");
+                // If downstream step had previously failed due to dependency, heal/reset it
+                if (dep.getStatus() == JobStatus.FAILED && dep.getLastErrorMessage() != null
+                        && dep.getLastErrorMessage().contains("Dependency failure")) {
+                    dep.resetForManualRetry();
+                    jobRepository.save(dep);
+                }
+
+                if (dep.getStatus() == JobStatus.QUEUED) {
+                    try {
+                        boolean added = queue.offer(dep.getId(), dep.getPriority());
+                        if (added) {
+                            eventPublisher.publishEvent(dep, "JOB_UNBLOCKED",
+                                    "Prerequisite step " + jobId + " succeeded; step unblocked and enqueued");
+                        }
+                    } catch (Exception ex) {
+                        log.warn("Failed to enqueue dependent job {}: {}", dep.getId(), ex.getMessage());
                     }
-                } catch (Exception ex) {
-                    log.warn("Failed to enqueue dependent job {}: {}", dep.getId(), ex.getMessage());
                 }
             }
         });
@@ -399,33 +433,93 @@ public class ExecutionEngine {
                         String.format("Execution failed permanently after %d attempts: %s",
                                 job.getAttemptCount(), errorMessage));
 
-                // Fail downstream dependent jobs in the workflow pipeline
-                List<Job> dependentJobs = jobRepository.findDependentJobs(jobId);
-                for (Job dep : dependentJobs) {
-                    dep.markFailed("Dependency failure: Prerequisite step " + jobId + " failed permanently", now);
-                    jobRepository.save(dep);
-                    queue.remove(dep.getId());
-                    eventPublisher.publishEvent(dep, "JOB_FAILED",
-                            "Pipeline aborted: prerequisite step " + jobId + " failed permanently");
-                }
+                // Recursively cascade failure down the workflow pipeline DAG
+                cascadeAbortDependents(jobId,
+                        "Dependency failure: Prerequisite step " + jobId + " failed permanently",
+                        JobStatus.FAILED);
             }
         });
     }
 
-    private String extractDependsOnJobId(String payload) {
-        if (payload == null || !payload.contains("dependsOnJobId")) return null;
-        try {
-            int idx = payload.indexOf("\"dependsOnJobId\"");
-            if (idx != -1) {
-                int colon = payload.indexOf(':', idx);
-                int quote1 = payload.indexOf('"', colon);
-                int quote2 = payload.indexOf('"', quote1 + 1);
-                if (quote1 != -1 && quote2 != -1) {
-                    return payload.substring(quote1 + 1, quote2).trim();
+    /**
+     * Recursively cascades failure or cancellation down the entire DAG dependency tree.
+     * Prevents orphaned tasks from remaining indefinitely in non-terminal states.
+     */
+    public void cascadeAbortDependents(String parentJobId, String reason, JobStatus targetStatus) {
+        if (parentJobId == null || parentJobId.isBlank()) return;
+        List<Job> dependents = jobRepository.findDependentJobs(parentJobId);
+        Instant now = Instant.now();
+        for (Job dep : dependents) {
+            if (!dep.getStatus().isTerminal()) {
+                if (targetStatus == JobStatus.CANCELLED) {
+                    dep.markCancelled();
+                    eventPublisher.publishEvent(dep, "JOB_CANCELLED", reason);
+                } else {
+                    dep.markFailed(reason, now);
+                    eventPublisher.publishEvent(dep, "JOB_FAILED", reason);
                 }
+                jobRepository.save(dep);
+                queue.remove(dep.getId());
+                interruptJobIfRunning(dep.getId());
+
+                // Recursively cascade to transitive descendants
+                cascadeAbortDependents(dep.getId(),
+                        "Pipeline aborted: Prerequisite step " + dep.getId() + " is " + targetStatus,
+                        targetStatus);
             }
-        } catch (Exception ignored) {}
+        }
+    }
+
+    /**
+     * Inspects whether a job is eligible to enter the active in-memory queue.
+     * If the job depends on a prerequisite that failed, was cancelled, or does not exist,
+     * it immediately cascades the abort so the job never sits stuck in QUEUED.
+     */
+    public boolean isJobReadyToRun(Job job) {
+        if (job == null) return false;
+        String parentId = extractDependsOnJobId(job.getPayload());
+        if (parentId == null || parentId.isBlank()) {
+            return true;
+        }
+        Job parent = jobRepository.findById(parentId).orElse(null);
+        if (parent == null) {
+            log.warn("Job {} references non-existent prerequisite job {}", job.getId(), parentId);
+            job.markFailed("Prerequisite job " + parentId + " not found", Instant.now());
+            jobRepository.save(job);
+            eventPublisher.publishEvent(job, "JOB_FAILED", "Prerequisite job " + parentId + " not found");
+            cascadeAbortDependents(job.getId(), "Prerequisite step " + job.getId() + " failed (parent missing)", JobStatus.FAILED);
+            return false;
+        }
+        if (parent.getStatus() == JobStatus.FAILED || parent.getStatus() == JobStatus.CANCELLED) {
+            JobStatus targetStatus = parent.getStatus();
+            if (targetStatus == JobStatus.CANCELLED) {
+                job.markCancelled();
+                eventPublisher.publishEvent(job, "JOB_CANCELLED", "Prerequisite step " + parentId + " was cancelled");
+            } else {
+                job.markFailed("Prerequisite step " + parentId + " failed", Instant.now());
+                eventPublisher.publishEvent(job, "JOB_FAILED", "Prerequisite step " + parentId + " failed");
+            }
+            jobRepository.save(job);
+            cascadeAbortDependents(job.getId(), "Prerequisite step " + job.getId() + " is " + targetStatus, targetStatus);
+            return false;
+        }
+        return parent.getStatus() == JobStatus.SUCCEEDED;
+    }
+
+    public String extractDependsOnJobId(String payload) {
+        if (payload == null || payload.isBlank()) return null;
+        java.util.regex.Matcher matcher = DEPENDS_ON_PATTERN.matcher(payload);
+        if (matcher.find()) {
+            String id = matcher.group(1).trim();
+            return id.isEmpty() ? null : id;
+        }
         return null;
+    }
+
+    public void resetWorkerContexts() {
+        for (WorkerContext ctx : workerContexts.values()) {
+            ctx.setIdle();
+        }
     }
 
     /**
@@ -468,8 +562,7 @@ public class ExecutionEngine {
     public void processScheduledRetries() {
         if (!isRunning.get() || isPaused.get()) return;
 
-        List<Job> readyJobs = jobRepository.findByStatusAndScheduledExecutionAtBefore(
-                JobStatus.RETRY_WAIT, Instant.now());
+        List<Job> readyJobs = jobRepository.findReadyRetries(Instant.now());
 
         for (Job job : readyJobs) {
             try {
@@ -483,6 +576,7 @@ public class ExecutionEngine {
     /**
      * Feeds pending QUEUED jobs from database into the bounded in-memory queue
      * whenever capacity becomes available.
+     * Guarded by isJobReadyToRun() so dependent DAG steps do NOT spin or drop while awaiting parents.
      */
     @Scheduled(fixedDelay = 1000)
     public void drainPendingDbJobs() {
@@ -493,7 +587,7 @@ public class ExecutionEngine {
         Pageable page = PageRequest.of(0, Math.min(available, 50));
         List<Job> queued = jobRepository.findByStatusOrderByPriorityDescCreatedAtAsc(JobStatus.QUEUED, page);
         for (Job job : queued) {
-            if (!queue.contains(job.getId())) {
+            if (!queue.contains(job.getId()) && isJobReadyToRun(job)) {
                 boolean added = queue.offer(job.getId(), job.getPriority());
                 if (!added) break;
             }

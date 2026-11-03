@@ -40,9 +40,12 @@ public interface JobRepository extends JpaRepository<Job, String> {
 
     List<Job> findByStatusAndScheduledExecutionAtBefore(JobStatus status, Instant cutoff);
 
+    @Query("SELECT j FROM Job j WHERE j.status = 'RETRY_WAIT' AND (j.scheduledExecutionAt IS NULL OR j.scheduledExecutionAt <= :cutoff)")
+    List<Job> findReadyRetries(@Param("cutoff") Instant cutoff);
+
     List<Job> findByStatusAndStartedAtBefore(JobStatus status, Instant cutoff);
 
-    @Query("SELECT j FROM Job j WHERE j.status = 'QUEUED' AND j.payload LIKE CONCAT('%', :parentJobId, '%')")
+    @Query("SELECT j FROM Job j WHERE j.payload LIKE CONCAT('%', :parentJobId, '%')")
     List<Job> findDependentJobs(@Param("parentJobId") String parentJobId);
 
     long countByStatus(JobStatus status);
