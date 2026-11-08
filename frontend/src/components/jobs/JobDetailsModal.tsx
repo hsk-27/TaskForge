@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, Clock, History, RefreshCw, X } from 'lucide-react';
+import { AlertTriangle, Clock, GitFork, History, RefreshCw, X } from 'lucide-react';
 import { Job, JobAttempt, JobEvent } from '../../types';
 import { api } from '../../api/client';
 import { StatusBadge } from '../common/StatusBadge';
@@ -35,6 +35,15 @@ export const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
   }, [job]);
 
   if (!job) return null;
+
+  let parsedPayload: any = null;
+  if (job.payload) {
+    try {
+      parsedPayload = JSON.parse(job.payload);
+    } catch {
+      parsedPayload = null;
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm font-sans select-none">
@@ -92,6 +101,27 @@ export const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
               </span>
             </div>
           </div>
+
+          {/* Pipeline DAG Prerequisite Card */}
+          {parsedPayload?.dependsOnJobId && (
+            <div className="p-3.5 bg-sky-500/10 border border-sky-500/30 rounded-lg text-xs">
+              <div className="font-semibold text-sky-400 mb-1.5 flex items-center gap-1.5">
+                <GitFork className="w-3.5 h-3.5" />
+                <span>Sequential Pipeline Dependency</span>
+                {parsedPayload.pipelineStep && (
+                  <span className="text-[10px] px-1.5 py-0.5 bg-sky-500/20 text-sky-300 rounded border border-sky-500/30 font-mono font-medium ml-1">
+                    Step #{parsedPayload.pipelineStep}
+                  </span>
+                )}
+              </div>
+              <div className="text-slate-300 flex items-center gap-2">
+                <span className="text-slate-400">Prerequisite Job ID:</span>
+                <span className="font-mono text-[11px] text-sky-300 font-medium bg-[#0b0f17] px-2 py-0.5 rounded border border-slate-800">
+                  {parsedPayload.dependsOnJobId}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Last Error Message if failed */}
           {job.lastErrorMessage && (

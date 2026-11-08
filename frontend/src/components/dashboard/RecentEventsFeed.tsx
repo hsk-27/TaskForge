@@ -27,14 +27,22 @@ export const RecentEventsFeed: React.FC<RecentEventsFeedProps> = ({ events }) =>
         ) : (
           events.map((event, idx) => {
             const time = new Date(event.createdAt).toLocaleTimeString();
-            const isFailure = event.eventType.includes('FAIL');
+            const isFailure = event.eventType.includes('FAIL') || event.eventType.includes('STALLED');
             const isSuccess = event.eventType.includes('SUCCEED');
             const isRetry = event.eventType.includes('RETRY');
+            const isUnblocked = event.eventType.includes('UNBLOCKED');
+            const isCancelled = event.eventType.includes('CANCEL');
+            const isScheduled = event.eventType.includes('SCHEDULED');
+            const isStarted = event.eventType.includes('STARTED');
 
             let badgeColor = 'bg-slate-800 text-slate-300 border-slate-700';
             if (isFailure) badgeColor = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
             else if (isSuccess) badgeColor = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
             else if (isRetry) badgeColor = 'bg-purple-500/10 text-purple-400 border-purple-500/30';
+            else if (isUnblocked) badgeColor = 'bg-sky-500/10 text-sky-400 border-sky-500/30';
+            else if (isCancelled) badgeColor = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+            else if (isScheduled) badgeColor = 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30';
+            else if (isStarted) badgeColor = 'bg-blue-500/10 text-blue-400 border-blue-500/30';
 
             return (
               <div

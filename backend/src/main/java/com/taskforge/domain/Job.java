@@ -97,7 +97,6 @@ public class Job {
         this.createdAt = Instant.now();
         this.attemptCount = 0;
         this.maxAttempts = Math.max(1, maxAttempts);
-        this.version = 0L;
     }
 
     public void transitionTo(JobStatus newStatus) {

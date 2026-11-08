@@ -338,6 +338,8 @@ public class ExecutionEngine {
     }
 
     public void recordSuccess(String jobId, String attemptId, String workerId, JobExecutionResult result) {
+        List<Job> readyToEnqueue = new ArrayList<>();
+
         transactionTemplate.executeWithoutResult(status -> {
             Job job = jobRepository.findById(jobId).orElse(null);
             JobAttempt attempt = attemptRepository.findById(attemptId).orElse(null);
@@ -364,7 +366,7 @@ public class ExecutionEngine {
             eventPublisher.publishEvent(job, "JOB_SUCCEEDED",
                     result != null ? result.message() : "Job completed successfully");
 
-            // Sequential Pipeline / DAG Workflow: Automatically unblock and enqueue downstream jobs
+            // Sequential Pipeline / DAG Workflow: Identify downstream jobs
             List<Job> dependentJobs = jobRepository.findDependentJobs(jobId);
             for (Job dep : dependentJobs) {
                 // If downstream step had previously failed due to dependency, heal/reset it
@@ -375,18 +377,25 @@ public class ExecutionEngine {
                 }
 
                 if (dep.getStatus() == JobStatus.QUEUED) {
-                    try {
-                        boolean added = queue.offer(dep.getId(), dep.getPriority());
-                        if (added) {
-                            eventPublisher.publishEvent(dep, "JOB_UNBLOCKED",
-                                    "Prerequisite step " + jobId + " succeeded; step unblocked and enqueued");
-                        }
-                    } catch (Exception ex) {
-                        log.warn("Failed to enqueue dependent job {}: {}", dep.getId(), ex.getMessage());
-                    }
+                    readyToEnqueue.add(dep);
                 }
             }
         });
+
+        // Concurrency Guard: Enqueue downstream jobs ONLY AFTER the parent transaction has committed!
+        // This eliminates the race condition where worker threads immediately poll the child job and
+        // inspect the parent before the parent's SUCCEEDED state has been committed to disk.
+        for (Job dep : readyToEnqueue) {
+            try {
+                boolean added = queue.offer(dep.getId(), dep.getPriority());
+                if (added) {
+                    eventPublisher.publishEvent(dep, "JOB_UNBLOCKED",
+                            "Prerequisite step " + jobId + " succeeded; step unblocked and enqueued");
+                }
+            } catch (Exception ex) {
+                log.warn("Failed to enqueue dependent job {}: {}", dep.getId(), ex.getMessage());
+            }
+        }
     }
 
     public void recordFailure(String jobId, String attemptId, String workerId, String errorMessage, Throwable error) {
