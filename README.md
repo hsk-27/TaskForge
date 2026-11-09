@@ -61,7 +61,12 @@ flowchart LR
    - Long-running execution: Handlers execute completely **outside** database transactions, preventing database connection starvation.
    - Short transaction 2: Finalize outcome (`SUCCEEDED`, `RETRY_WAIT`, or `FAILED`).
 
-4. **Resilient Retry Policies:**
+4. **Sequential DAG Pipelines & Cascading Aborts:**
+   - Sequential multi-step workflows (`isSequential: true`) where step $N$ depends on step $N-1$.
+   - Automatic cascade abort: if an upstream step fails permanently or is cancelled by an operator, all downstream transitive descendants are aborted immediately, preventing orphaned tasks from remaining stuck in `QUEUED`.
+   - Post-commit queueing guarantees worker threads only claim child tasks after parent completion has committed to disk.
+
+5. **Resilient Retry Policies:**
    - Configurable exponential backoff with randomized jitter to prevent the "thundering herd" problem.
    - Deterministic failure scenarios for repeatable verification.
 
@@ -176,7 +181,7 @@ Open your browser at **[http://localhost:5173](http://localhost:5173)**.
 cd backend
 mvn clean test
 ```
-*Executes 38 tests across 8 test suites covering concurrency, bounded queues, state transitions, retry policies, delayed scheduling, bulk maintenance, intelligent assistant endpoints, and REST APIs.*
+*Executes 45 tests across 9 test suites covering concurrency, bounded queues, sequential DAG pipelines, cascading aborts, state transitions, retry policies, delayed scheduling, bulk maintenance, intelligent assistant endpoints, and REST APIs.*
 
 ### Frontend Tests (Vitest + React Testing Library)
 ```powershell
