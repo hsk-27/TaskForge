@@ -108,7 +108,7 @@ export interface PaginatedResponse<T> {
   number: number;
 }
 
-export type AssistantPersona = 'STUDENT' | 'OPERATOR' | 'DEVELOPER' | 'NOVICE';
+export type AssistantPersona = 'SRE' | 'OPERATOR' | 'DEVELOPER' | 'AUDITOR' | 'STUDENT' | 'NOVICE';
 
 export interface ChatAction {
   id: string;

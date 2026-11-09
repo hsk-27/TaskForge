@@ -10,6 +10,7 @@ import {
   Plus,
   RefreshCw,
   RotateCcw,
+  ShieldCheck,
   Zap,
 } from 'lucide-react';
 
@@ -89,16 +90,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div className="space-y-4 font-sans">
       {/* Cluster Control & Dispatch Bar */}
-      <div className="p-4 bg-[#101726] border border-slate-800 rounded-lg shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-4 bg-[#121316] border border-white/[0.08] rounded-lg shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-semibold text-slate-100">Operations Console</h2>
-            <span className="text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-              Engine Ready
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-sm font-semibold text-zinc-100">Cluster Operations Console</h2>
+            <span className="text-[10px] font-mono font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded">
+              SLA NORMAL
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Concurrent worker thread pool with bounded FIFO queuing, backpressure, and automatic recovery.
+          <p className="text-xs text-zinc-400 mt-1">
+            Real-time telemetry, worker concurrency, and automated fault recovery.
           </p>
         </div>
 
@@ -107,7 +108,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <button
             disabled={dispatching !== null}
             onClick={() => handleQuickDispatch('SMOKE_10')}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 hover:border-emerald-500/50 text-xs font-medium rounded-md transition-all shadow-sm disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-white/[0.08] hover:border-white/[0.15] text-xs font-medium rounded-md transition-all shadow-sm disabled:opacity-50"
             title="Dispatch 10 smoke-test jobs"
           >
             <Zap className="w-3.5 h-3.5 text-emerald-400" />
@@ -117,17 +118,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <button
             disabled={dispatching !== null}
             onClick={() => handleQuickDispatch('BURST_100')}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-md transition-all shadow-sm disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-white/[0.08] hover:border-white/[0.15] text-xs font-medium rounded-md transition-all shadow-sm disabled:opacity-50"
             title="Dispatch 100-job stress burst"
           >
-            <Layers className="w-3.5 h-3.5 text-white" />
+            <Layers className="w-3.5 h-3.5 text-indigo-400" />
             <span>{dispatching === 'BURST_100' ? 'Dispatching...' : '100 Job Burst'}</span>
           </button>
 
           <button
             disabled={dispatching !== null}
             onClick={() => handleQuickDispatch('PIPELINE_5')}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 hover:border-sky-500/50 text-xs font-medium rounded-md transition-all shadow-sm disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-white/[0.08] hover:border-white/[0.15] text-xs font-medium rounded-md transition-all shadow-sm disabled:opacity-50"
             title="Dispatch 5-stage sequential workflow pipeline DAG"
           >
             <GitCommit className="w-3.5 h-3.5 text-sky-400" />
@@ -136,42 +137,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <button
             onClick={onOpenCreateModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium rounded-md transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-md transition-colors shadow-sm"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>New Job</span>
+            <span>Ingest Job</span>
           </button>
 
           <button
             onClick={onOpenBatchModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium rounded-md transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-white/[0.08] hover:border-white/[0.15] text-xs font-medium rounded-md transition-colors shadow-sm"
           >
             <PlayCircle className="w-3.5 h-3.5" />
-            <span>Custom Batch</span>
+            <span>Batch Dispatch</span>
           </button>
 
           <button
             onClick={onRefresh}
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium rounded-md transition-colors shadow-sm"
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-white/[0.08] hover:border-white/[0.15] text-xs font-medium rounded-md transition-colors shadow-sm"
             title="Refresh metrics and events"
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
-
-          {onClearData && (
-            <button
-              onClick={() => {
-                if (window.confirm('Reset engine state: Clear queue buffers, attempts, and historical events?')) {
-                  onClearData();
-                }
-              }}
-              className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-rose-950/40 text-slate-400 hover:text-rose-300 border border-slate-700 hover:border-rose-500/30 text-xs font-medium rounded-md transition-colors shadow-sm"
-              title="Reset all database records"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Reset</span>
-            </button>
-          )}
         </div>
       </div>
 

@@ -154,6 +154,7 @@ class DagPipelineIntegrationTest {
     @DisplayName("Operator cancellation of parent step cascades cancellation down the pipeline")
     void testCancelCascadesDownstream() throws Exception {
         executionEngine.setPaused(true);
+        Thread.sleep(50);
 
         BatchJobRequest request = new BatchJobRequest(3, "cancel-dag", JobType.COMPUTE, 0, 0.0, 50, 3, null, true);
         BatchJobResponse response = jobService.createBatch(request);

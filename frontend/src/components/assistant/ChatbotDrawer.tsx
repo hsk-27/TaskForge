@@ -6,14 +6,14 @@ import {
   Check,
   Code2,
   Copy,
-  GraduationCap,
-  HelpCircle,
+  FileCheck,
+  Layers,
   Play,
   RotateCcw,
   Send,
+  ShieldCheck,
   Sparkles,
   Trash2,
-  User,
   Wrench,
   X,
   Zap,
@@ -33,13 +33,13 @@ export const ChatbotDrawer: React.FC<ChatbotDrawerProps> = ({
   onClose,
   onActionExecuted,
 }) => {
-  const [persona, setPersona] = useState<AssistantPersona>('STUDENT');
+  const [persona, setPersona] = useState<AssistantPersona>('SRE');
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
       sender: 'assistant',
-      text: "### Welcome to ForgeBot Intelligent Assistant!\n\nI am your interactive engineering co-pilot for TaskForge. Select your mode above:\n- 🎓 **Student / Viva Prep:** Defend CS concepts, OS multithreading, and DBMS transaction decoupling.\n- 🛠️ **DevOps / Operator:** Inspect cluster health, queue load, and run one-click remediation actions.\n- 💻 **Developer:** API contracts, JSON request schemas, and concurrency internals.\n- 👤 **Plain English:** Simple analogies and status checks without technical jargon.\n\nHow can I assist you right now?",
-      persona: 'STUDENT',
+      text: "### TaskForge Ops Copilot (Production SRE Assistant)\n\nI am your cluster operations and reliability assistant. Select an operational mode above:\n- 🛡️ **SRE Triage:** Root-cause diagnostics, Dead Letter Queue (DLQ) forensics, and error budgets.\n- ⚡ **Cluster Ops:** Worker fleet scaling, queue backpressure management, and remediation actions.\n- 💻 **API & SDK:** Endpoint contracts, JSON payload schemas, and cURL snippets.\n- 📋 **Audit & SLA:** Immutable execution attempts, transaction isolation, and event audit trails.\n\nQuery cluster health, triage failures, or execute remediation actions below.",
+      persona: 'SRE',
       timestamp: new Date(),
     },
   ]);
@@ -98,6 +98,8 @@ export const ChatbotDrawer: React.FC<ChatbotDrawerProps> = ({
     setLoading(true);
     try {
       const res = await api.sendChatMessage(text || 'Execute directive', persona, actionId);
+      audioTelemetry.commandExecuted();
+
       const botMsg: ChatMessage = {
         id: `bot-${Date.now()}`,
         sender: 'assistant',
@@ -105,10 +107,10 @@ export const ChatbotDrawer: React.FC<ChatbotDrawerProps> = ({
         persona: res.persona,
         actions: res.actions,
         systemSnapshot: res.systemSnapshot,
-        timestamp: new Date(res.timestamp),
+        timestamp: new Date(),
       };
       setMessages((prev) => [...prev, botMsg]);
-      audioTelemetry.jobCompleted();
+
       if (actionId && onActionExecuted) {
         onActionExecuted();
       }
@@ -116,19 +118,18 @@ export const ChatbotDrawer: React.FC<ChatbotDrawerProps> = ({
       const errorMsg: ChatMessage = {
         id: `err-${Date.now()}`,
         sender: 'assistant',
-        text: `⚠️ **Error communicating with ForgeBot:** ${err.message}`,
+        text: `**Operational Error:** Failed to process copilot directive: ${err.message}`,
         persona,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMsg]);
-      audioTelemetry.jobFailed();
     } finally {
       setLoading(false);
     }
   };
 
   const handleExecuteAction = async (action: ChatAction) => {
-    await handleSendMessage(`Run action: ${action.label}`, action.id);
+    await handleSendMessage(`Execute action: ${action.label}`, action.id);
   };
 
   const copyToClipboard = (code: string, id: string) => {
@@ -137,30 +138,29 @@ export const ChatbotDrawer: React.FC<ChatbotDrawerProps> = ({
     setTimeout(() => setCopiedCodeId(null), 2000);
   };
 
-  // Basic markdown-to-elements renderer
-  const renderFormattedText = (rawText: string, messageId: string) => {
-    const parts = rawText.split(/(```[\s\S]*?```)/g);
+  const renderMessageContent = (text: string) => {
+    const parts = text.split(/(```[\s\S]*?```)/g);
 
     return parts.map((part, index) => {
       if (part.startsWith('```') && part.endsWith('```')) {
-        const lines = part.slice(3, -3).trim().split('\n');
-        const lang = lines[0].match(/^[a-zA-Z0-9]+$/) ? lines[0] : '';
-        const code = lang ? lines.slice(1).join('\n') : lines.join('\n');
-        const codeId = `${messageId}-${index}`;
+        const firstLineEnd = part.indexOf('\n');
+        const lang = part.slice(3, firstLineEnd).trim();
+        const code = part.slice(firstLineEnd + 1, -3);
+        const codeId = `code-${index}-${Date.now()}`;
 
         return (
-          <div key={index} className="my-2 rounded-md overflow-hidden border border-slate-800 bg-[#090d16]">
-            <div className="flex items-center justify-between px-3 py-1 bg-slate-900 border-b border-slate-800 text-[10px] text-slate-400 font-mono">
+          <div key={index} className="my-2 rounded-md overflow-hidden border border-white/[0.08] bg-[#08090a]">
+            <div className="flex items-center justify-between px-3 py-1 bg-[#141518] border-b border-white/[0.06] text-[10px] text-zinc-400 font-mono">
               <span>{lang || 'code'}</span>
               <button
                 onClick={() => copyToClipboard(code, codeId)}
-                className="flex items-center gap-1 hover:text-slate-200 transition-colors"
+                className="flex items-center gap-1 hover:text-zinc-200 transition-colors"
                 title="Copy code snippet"
               >
                 {copiedCodeId === codeId ? (
                   <>
                     <Check className="w-3 h-3 text-emerald-400" />
-                    <span className="text-emerald-400">Copied</span>
+                    <span className="text-emerald-400 font-mono">Copied</span>
                   </>
                 ) : (
                   <>
@@ -170,7 +170,7 @@ export const ChatbotDrawer: React.FC<ChatbotDrawerProps> = ({
                 )}
               </button>
             </div>
-            <pre className="p-3 text-xs font-mono text-slate-200 overflow-x-auto whitespace-pre leading-relaxed">
+            <pre className="p-3 text-xs font-mono text-zinc-200 overflow-x-auto whitespace-pre leading-relaxed">
               <code>{code}</code>
             </pre>
           </div>
@@ -192,8 +192,8 @@ export const ChatbotDrawer: React.FC<ChatbotDrawerProps> = ({
             }
             if (line.startsWith('- ')) {
               return (
-                <div key={lIdx} className="flex items-start gap-1.5 pl-2 text-xs text-slate-200">
-                  <span className="text-slate-400">•</span>
+                <div key={lIdx} className="flex items-start gap-1.5 pl-2 text-xs text-zinc-300">
+                  <span className="text-zinc-500">•</span>
                   <span>{renderInlineBoldAndCode(line.replace('- ', ''))}</span>
                 </div>
               );
@@ -202,7 +202,7 @@ export const ChatbotDrawer: React.FC<ChatbotDrawerProps> = ({
               return <div key={lIdx} className="h-1" />;
             }
             return (
-              <p key={lIdx} className="text-xs text-slate-200">
+              <p key={lIdx} className="text-xs text-zinc-300">
                 {renderInlineBoldAndCode(line)}
               </p>
             );
@@ -213,15 +213,14 @@ export const ChatbotDrawer: React.FC<ChatbotDrawerProps> = ({
   };
 
   const renderInlineBoldAndCode = (text: string) => {
-    // Replace **bold** and `code`
     const tokens = text.split(/(\*\*.*?\*\*|`.*?`)/g);
     return tokens.map((token, i) => {
       if (token.startsWith('**') && token.endsWith('**')) {
-        return <strong key={i} className="font-semibold text-slate-100">{token.slice(2, -2)}</strong>;
+        return <strong key={i} className="font-semibold text-zinc-100">{token.slice(2, -2)}</strong>;
       }
       if (token.startsWith('`') && token.endsWith('`')) {
         return (
-          <code key={i} className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-amber-300 font-mono text-[11px]">
+          <code key={i} className="px-1.5 py-0.5 rounded bg-[#08090a] border border-white/[0.08] text-amber-300 font-mono text-[11px]">
             {token.slice(1, -1)}
           </code>
         );
@@ -236,40 +235,40 @@ export const ChatbotDrawer: React.FC<ChatbotDrawerProps> = ({
     <div className="fixed inset-0 z-50 overflow-hidden font-sans select-none flex justify-end">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
       {/* Drawer Container */}
-      <div className="relative w-full max-w-lg bg-[#0e1422] border-l border-slate-800 shadow-2xl flex flex-col h-full z-10 animate-in slide-in-from-right duration-200">
+      <div className="relative w-full max-w-lg bg-[#0f1012] border-l border-white/[0.08] shadow-2xl flex flex-col h-full z-10 animate-in slide-in-from-right duration-200">
         {/* Header */}
-        <div className="p-3.5 border-b border-slate-800 bg-[#0a0f1a] flex items-center justify-between">
+        <div className="p-3.5 border-b border-white/[0.08] bg-[#08090a] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
-              <Bot className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+              <Sparkles className="w-4 h-4" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-xs font-semibold text-slate-100">ForgeBot Assistant</h3>
-                <span className="text-[10px] font-medium px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  Online
+                <h3 className="text-xs font-semibold text-zinc-100">TaskForge Ops Copilot</h3>
+                <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  ONLINE
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400">Interactive Co-Pilot & Viva Defense</p>
+              <p className="text-[11px] text-zinc-500">Cluster SRE &amp; Reliability Copilot</p>
             </div>
           </div>
 
           <div className="flex items-center gap-1">
             <button
               onClick={() => setMessages([messages[0]])}
-              className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-md transition-colors"
-              title="Clear chat history"
+              className="p-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded-md transition-colors"
+              title="Reset conversation"
             >
               <RotateCcw className="w-4 h-4" />
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-md transition-colors"
+              className="p-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded-md transition-colors"
               title="Close drawer"
             >
               <X className="w-4 h-4" />
@@ -278,61 +277,61 @@ export const ChatbotDrawer: React.FC<ChatbotDrawerProps> = ({
         </div>
 
         {/* Persona Mode Selector */}
-        <div className="p-2.5 bg-[#101726] border-b border-slate-800/80">
-          <div className="text-[10px] uppercase font-bold text-slate-400 mb-1.5 tracking-wider px-1">
-            Audience Persona Mode
+        <div className="p-2.5 bg-[#141518] border-b border-white/[0.08]">
+          <div className="text-[10px] uppercase font-mono font-semibold text-zinc-500 mb-1.5 tracking-wider px-1">
+            Operational Role Mode
           </div>
           <div className="grid grid-cols-4 gap-1.5">
             <button
-              onClick={() => setPersona('STUDENT')}
+              onClick={() => setPersona('SRE')}
               className={`flex flex-col items-center justify-center py-2 px-1 rounded-md border text-[11px] font-medium transition-all ${
-                persona === 'STUDENT'
-                  ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/50 shadow-sm'
-                  : 'bg-[#0a0f1a] text-slate-400 border-slate-800 hover:text-slate-200'
+                persona === 'SRE' || persona === 'STUDENT'
+                  ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 shadow-sm'
+                  : 'bg-[#08090a] text-zinc-400 border-white/[0.06] hover:text-zinc-200 hover:bg-zinc-900'
               }`}
-              title="Academic Capstone & Viva Defense"
+              title="Site Reliability & Incident Triage"
             >
-              <GraduationCap className="w-3.5 h-3.5 mb-1 text-indigo-400" />
-              <span>Viva Prep</span>
+              <ShieldCheck className="w-3.5 h-3.5 mb-1 text-indigo-400" />
+              <span>SRE Triage</span>
             </button>
 
             <button
               onClick={() => setPersona('OPERATOR')}
               className={`flex flex-col items-center justify-center py-2 px-1 rounded-md border text-[11px] font-medium transition-all ${
                 persona === 'OPERATOR'
-                  ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/50 shadow-sm'
-                  : 'bg-[#0a0f1a] text-slate-400 border-slate-800 hover:text-slate-200'
+                  ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 shadow-sm'
+                  : 'bg-[#08090a] text-zinc-400 border-white/[0.06] hover:text-zinc-200 hover:bg-zinc-900'
               }`}
-              title="DevOps & Cluster Health Actions"
+              title="Cluster Operations & Remediations"
             >
               <Wrench className="w-3.5 h-3.5 mb-1 text-amber-400" />
-              <span>DevOps</span>
+              <span>Cluster Ops</span>
             </button>
 
             <button
               onClick={() => setPersona('DEVELOPER')}
               className={`flex flex-col items-center justify-center py-2 px-1 rounded-md border text-[11px] font-medium transition-all ${
                 persona === 'DEVELOPER'
-                  ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/50 shadow-sm'
-                  : 'bg-[#0a0f1a] text-slate-400 border-slate-800 hover:text-slate-200'
+                  ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 shadow-sm'
+                  : 'bg-[#08090a] text-zinc-400 border-white/[0.06] hover:text-zinc-200 hover:bg-zinc-900'
               }`}
-              title="REST APIs, Schemas & Concurrency"
+              title="REST APIs, Schemas & Webhooks"
             >
               <Code2 className="w-3.5 h-3.5 mb-1 text-sky-400" />
-              <span>Developer</span>
+              <span>API &amp; SDK</span>
             </button>
 
             <button
-              onClick={() => setPersona('NOVICE')}
+              onClick={() => setPersona('AUDITOR')}
               className={`flex flex-col items-center justify-center py-2 px-1 rounded-md border text-[11px] font-medium transition-all ${
-                persona === 'NOVICE'
-                  ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/50 shadow-sm'
-                  : 'bg-[#0a0f1a] text-slate-400 border-slate-800 hover:text-slate-200'
+                persona === 'AUDITOR' || persona === 'NOVICE'
+                  ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 shadow-sm'
+                  : 'bg-[#08090a] text-zinc-400 border-white/[0.06] hover:text-zinc-200 hover:bg-zinc-900'
               }`}
-              title="Plain English & Analogies"
+              title="Forensic Audit Trails & SLA Compliance"
             >
-              <User className="w-3.5 h-3.5 mb-1 text-emerald-400" />
-              <span>Plain English</span>
+              <FileCheck className="w-3.5 h-3.5 mb-1 text-emerald-400" />
+              <span>Audit &amp; SLA</span>
             </button>
           </div>
         </div>
@@ -348,56 +347,20 @@ export const ChatbotDrawer: React.FC<ChatbotDrawerProps> = ({
                 className={`max-w-[92%] rounded-lg p-3 text-xs shadow-sm ${
                   m.sender === 'user'
                     ? 'bg-indigo-600 text-white rounded-br-none'
-                    : 'bg-[#121a2c] text-slate-200 border border-slate-800 rounded-bl-none'
+                    : 'bg-[#141518] text-zinc-200 border border-white/[0.06] rounded-bl-none'
                 }`}
               >
-                {/* Persona Tag for Assistant */}
-                {m.sender === 'assistant' && m.persona && (
-                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-1.5 mb-2 text-[10px] text-slate-400 font-mono">
-                    <span className="flex items-center gap-1">
-                      <Bot className="w-3 h-3 text-indigo-400" />
-                      <span>Mode: {m.persona}</span>
-                    </span>
-                    <span>{m.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                  </div>
-                )}
+                {renderMessageContent(m.text)}
 
-                {/* Formatted Content */}
-                <div>{renderFormattedText(m.text, m.id)}</div>
-
-                {/* Live System Snapshot Card */}
-                {m.systemSnapshot && (
-                  <div className="mt-3 p-2 rounded bg-[#090d16] border border-slate-800 text-[11px] grid grid-cols-3 gap-2 text-center font-mono">
-                    <div className="p-1 rounded bg-slate-900/60">
-                      <div className="text-[10px] text-slate-400">Workers</div>
-                      <div className="font-semibold text-indigo-300">
-                        {m.systemSnapshot.activeWorkers ?? 0}/{m.systemSnapshot.totalWorkers ?? 0}
-                      </div>
-                    </div>
-                    <div className="p-1 rounded bg-slate-900/60">
-                      <div className="text-[10px] text-slate-400">Queue</div>
-                      <div className="font-semibold text-sky-300">
-                        {m.systemSnapshot.queueSize ?? 0}/{m.systemSnapshot.queueCapacity ?? 0}
-                      </div>
-                    </div>
-                    <div className="p-1 rounded bg-slate-900/60">
-                      <div className="text-[10px] text-slate-400">DLQ Failed</div>
-                      <div className={`font-semibold ${Number(m.systemSnapshot.failedJobs) > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                        {m.systemSnapshot.failedJobs ?? 0}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Interactive Action Pills */}
+                {/* Remediation Action Pills */}
                 {m.actions && m.actions.length > 0 && (
-                  <div className="mt-3 pt-2 border-t border-slate-800/80 flex flex-wrap gap-1.5">
+                  <div className="mt-3 pt-2.5 border-t border-white/[0.08] flex flex-wrap gap-1.5">
                     {m.actions.map((act) => (
                       <button
                         key={act.id}
                         onClick={() => handleExecuteAction(act)}
                         disabled={loading}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-800 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-[11px] font-medium transition-colors shadow-sm disabled:opacity-50"
+                        className="px-2.5 py-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded text-[11px] font-medium transition-colors flex items-center gap-1 disabled:opacity-50"
                         title={act.description}
                       >
                         <Zap className="w-3 h-3 text-indigo-400" />
@@ -407,80 +370,59 @@ export const ChatbotDrawer: React.FC<ChatbotDrawerProps> = ({
                   </div>
                 )}
               </div>
+
+              <div className="text-[10px] text-zinc-600 font-mono mt-1 px-1">
+                {new Date(m.timestamp).toLocaleTimeString()}
+              </div>
             </div>
           ))}
 
           {loading && (
-            <div className="flex items-center gap-2 text-slate-400 text-xs py-2 px-1 font-mono">
-              <Sparkles className="w-4 h-4 animate-spin text-indigo-400" />
-              <span>ForgeBot is processing...</span>
+            <div className="flex items-center gap-2 p-3 bg-[#141518] border border-white/[0.06] rounded-lg text-xs text-zinc-400 w-fit">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-spin" />
+              <span>Querying cluster telemetry &amp; generating forensic directive...</span>
             </div>
           )}
 
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Prompt Suggestions */}
+        {/* Suggested Queries */}
         {suggestions.length > 0 && (
-          <div className="px-3.5 py-2 border-t border-slate-800/80 bg-[#0a0f1a] overflow-x-auto">
-            <div className="text-[10px] uppercase font-bold text-slate-400 mb-1 tracking-wider">
-              Suggested Inquiries
-            </div>
-            <div className="flex gap-1.5 pb-1 flex-nowrap">
-              {suggestions.map((s, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleSendMessage(s)}
-                  disabled={loading}
-                  className="whitespace-nowrap px-2.5 py-1 rounded-md bg-[#121a2c] hover:bg-slate-800 text-slate-300 border border-slate-800 text-[11px] transition-colors disabled:opacity-50 flex items-center gap-1"
-                >
-                  <HelpCircle className="w-3 h-3 text-indigo-400" />
-                  <span>{s}</span>
-                </button>
-              ))}
-            </div>
+          <div className="p-2.5 border-t border-white/[0.06] bg-[#0c0d10] flex gap-1.5 overflow-x-auto text-[11px] select-none">
+            {suggestions.map((sug, i) => (
+              <button
+                key={i}
+                onClick={() => handleSendMessage(sug)}
+                disabled={loading}
+                className="px-2 py-1 rounded bg-[#141518] hover:bg-zinc-800 text-zinc-300 hover:text-zinc-100 border border-white/[0.06] whitespace-nowrap text-xs transition-colors disabled:opacity-50"
+              >
+                {sug}
+              </button>
+            ))}
           </div>
         )}
 
         {/* Input Bar */}
-        <div className="p-3 border-t border-slate-800 bg-[#0a0f1a]">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSendMessage();
-            }}
-            className="flex items-center gap-2"
+        <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="p-3 border-t border-white/[0.08] bg-[#08090a] flex items-center gap-2">
+          <input
+            ref={inputRef}
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            disabled={loading}
+            placeholder="Query cluster state, triage failures, or generate cURL snippets..."
+            className="flex-1 px-3 py-2 bg-[#141518] border border-white/[0.08] rounded-md text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 transition-colors font-sans"
+          />
+          <button
+            type="submit"
+            disabled={loading || !inputText.trim()}
+            className="p-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-md transition-colors"
+            title="Execute query"
           >
-            <input
-              ref={inputRef}
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder={
-                persona === 'STUDENT'
-                  ? 'Ask about Two-Phase Tx, HikariCP, backoff formula...'
-                  : persona === 'OPERATOR'
-                  ? 'Ask cluster health, replay DLQ, cancel pending...'
-                  : persona === 'NOVICE'
-                  ? 'Ask what this is in plain English...'
-                  : 'Ask REST endpoints, JSON payload schemas...'
-              }
-              disabled={loading}
-              className="flex-1 bg-[#121a2c] border border-slate-700/80 rounded-md px-3 py-2 text-xs text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50"
-            />
-            <button
-              type="submit"
-              disabled={loading || !inputText.trim()}
-              className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-md text-xs font-medium transition-colors shadow-sm flex items-center gap-1"
-            >
-              <Send className="w-3.5 h-3.5" />
-            </button>
-          </form>
-          <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-400 px-1 font-mono">
-            <span>Shortcut: Ctrl + / toggles assistant</span>
-            <span>Zero AI APIs • 100% Embedded</span>
-          </div>
-        </div>
+            <Send className="w-3.5 h-3.5" />
+          </button>
+        </form>
       </div>
     </div>
   );

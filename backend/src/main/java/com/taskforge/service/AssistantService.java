@@ -84,9 +84,9 @@ public class AssistantService {
 
         // Persona-specific routing
         return switch (persona) {
-            case "STUDENT" -> handleStudentQuery(lowerMsg, snapshot);
+            case "SRE", "STUDENT" -> handleSreQuery(lowerMsg, snapshot, persona);
             case "OPERATOR" -> handleOperatorQuery(lowerMsg, snapshot);
-            case "NOVICE" -> handleNoviceQuery(lowerMsg, snapshot);
+            case "AUDITOR", "NOVICE" -> handleAuditorQuery(lowerMsg, snapshot, persona);
             default -> handleDeveloperQuery(lowerMsg, snapshot);
         };
     }
@@ -198,63 +198,62 @@ public class AssistantService {
     }
 
     // -------------------------------------------------------------
-    // PERSONA 1: STUDENT (B.Tech Capstone & Viva Defense)
+    // PERSONA 1: SRE (Site Reliability Engineering, Incident Triage & Architecture)
     // -------------------------------------------------------------
-    private ChatResponse handleStudentQuery(String msg, Map<String, Object> snapshot) {
+    private ChatResponse handleSreQuery(String msg, Map<String, Object> snapshot, String requestedPersona) {
         StringBuilder reply = new StringBuilder();
         List<ChatAction> actions = new ArrayList<>();
 
         if (msg.contains("producer") || msg.contains("consumer") || msg.contains("queue") || msg.contains("buffer")) {
-            reply.append("### B.Tech Viva Defense: Producer-Consumer Architecture\n\n")
-                    .append("**Question:** *How is the Producer-Consumer pattern implemented in TaskForge?*\n\n")
-                    .append("- **Producers:** Incoming HTTP REST requests (`POST /api/v1/jobs`) act as producers. They persist task records and offer IDs to the buffer.\n")
-                    .append("- **Bounded Buffer (`JobQueue.java`):** Wraps Java's `PriorityBlockingQueue` with a lock-free Compare-And-Swap (CAS) `AtomicInteger` to enforce a strict upper bound capacity. This provides **backpressure** (HTTP 429) to prevent Out-Of-Memory crashes.\n")
+            reply.append("### Architecture Diagnostic: Producer-Consumer Architecture\n\n")
+                    .append("**System Design Specification:**\n\n")
+                    .append("- **Producers:** Ingesting services submitting via REST API (`POST /api/v1/jobs`). They persist task records and offer IDs to the execution buffer.\n")
+                    .append("- **Bounded Buffer (`JobQueue.java`):** Wraps Java's `PriorityBlockingQueue` with a lock-free CAS `AtomicInteger` to enforce a strict upper bound capacity. This provides **backpressure** (HTTP 429) to prevent Out-Of-Memory crashes during ingress traffic spikes.\n")
                     .append("- **Consumers:** A pool of dedicated OS worker threads (`taskforge-worker-0..N`) execute an infinite loop in `WorkerThread.run()`, pulling tasks and dispatching them to workload handlers.\n\n")
-                    .append("**Examiner Tip:** Point out that priority ordering is O(log N) heap insertion, but deduplication is O(1) via a `ConcurrentHashMap`-backed set!");
+                    .append("**Engineering Invariant:** Priority ordering is O(log N) heap insertion, but deduplication is O(1) via a `ConcurrentHashMap`-backed membership set.");
         } else if (msg.contains("two phase") || msg.contains("transaction") || msg.contains("starvation") || msg.contains("hikaricp")) {
-            reply.append("### B.Tech Viva Defense: Two-Phase Transaction Decoupling\n\n")
-                    .append("**Question:** *Why is task execution NOT inside a `@Transactional` method?*\n\n")
-                    .append("- **The Trap:** If a compute task takes 5 seconds, putting `@Transactional` on the execution method holds a JDBC database connection from HikariCP for 5 full seconds. With 10 workers, all 10 connections are starved immediately, crashing the REST API with connection timeouts.\n")
-                    .append("- **The TaskForge Solution:**\n")
-                    .append("  1. **Phase 1 Short Tx (~2ms):** `claimJob()` marks the job `RUNNING`, records start time, and **commits immediately**, releasing the DB connection.\n")
-                    .append("  2. **Heavy Execution:** The workload runs **completely outside** any database transaction.\n")
-                    .append("  3. **Phase 2 Short Tx (~2ms):** `recordSuccess()` or `recordFailure()` opens a second transaction to save the final terminal status.\n\n")
-                    .append("**Code Reference:** See `ExecutionEngine.java` lines 268-340.");
+            reply.append("### Reliability Architecture: Two-Phase Transaction Decoupling\n\n")
+                    .append("**Incident Prevention (HikariCP Connection Pool Starvation Guard):**\n\n")
+                    .append("- **Failure Mode:** If a compute task takes 5 seconds, wrapping the execution handler with `@Transactional` holds a JDBC database connection from HikariCP for the entire duration. With 10 workers, all 10 connections are starved immediately, causing API connection timeouts (HTTP 500).\n")
+                    .append("- **The TaskForge Architecture:**\n")
+                    .append("  1. **Phase 1 Short Tx (~2ms):** `claimJob()` transitions state to `RUNNING`, records start timestamp, and **commits immediately**, releasing the DB connection back to the HikariCP pool.\n")
+                    .append("  2. **Out-of-Tx Execution:** Heavy CPU or I/O workloads execute **completely outside** any database transaction.\n")
+                    .append("  3. **Phase 2 Short Tx (~2ms):** `recordSuccess()` or `recordFailure()` opens a second transaction to persist terminal state.\n\n")
+                    .append("**Source Reference:** `ExecutionEngine.java` lines 268-340.");
         } else if (msg.contains("backoff") || msg.contains("jitter") || msg.contains("thundering herd") || msg.contains("retry")) {
-            reply.append("### B.Tech Viva Defense: Exponential Backoff & Jitter\n\n")
-                    .append("**Question:** *What is the Thundering Herd problem and how do we prevent it?*\n\n")
-                    .append("- If 100 jobs fail simultaneously because an external service dipped for 1 second, retrying with fixed exponential delays ($2^n$) causes all 100 jobs to wake up at the exact same millisecond, crashing the recovering service again.\n")
+            reply.append("### Reliability Engineering: Exponential Backoff & Jitter\n\n")
+                    .append("**Thundering Herd Mitigation:**\n\n")
+                    .append("- If 100 jobs fail simultaneously because a downstream dependency dips for 1 second, retrying with fixed exponential delays ($2^n$) causes all 100 jobs to retry at the exact same millisecond, re-saturating the recovering service.\n")
                     .append("- In `RetryPolicy.java`, TaskForge applies **Full Randomized Jitter**:\n")
                     .append("  $$\\text{Delay} = \\text{Base} \\times 2^{(\\text{attempt}-1)} \\pm (\\text{Delay} \\times \\text{JitterFactor} \\times \\text{random}())$$\n")
                     .append("- This breaks thread synchronization and distributes retry traffic evenly across the time continuum.");
         } else if (msg.contains("websocket") || msg.contains("sse") || msg.contains("polling") || msg.contains("stream")) {
-            reply.append("### B.Tech Viva Defense: Server-Sent Events (SSE) vs WebSockets\n\n")
-                    .append("**Question:** *Why choose SSE over WebSockets or Short Polling for the dashboard?*\n\n")
-                    .append("1. **Over Polling:** Short polling repeatedly sends HTTP GET requests every second, wasting server bandwidth and triggering redundant DB queries.\n")
+            reply.append("### Telemetry Pipeline: Server-Sent Events (SSE) vs WebSockets\n\n")
+                    .append("**Operational Advantages:**\n\n")
+                    .append("1. **Over Polling:** Short polling sends HTTP GET requests every second, wasting server bandwidth and triggering redundant DB queries.\n")
                     .append("2. **Over WebSockets:** WebSockets require a protocol upgrade to a custom bidirectional TCP connection. A monitoring dashboard is strictly **server-to-client telemetry**.\n")
                     .append("3. **SSE Advantage:** Operates over standard HTTP (`text/event-stream`), traverses corporate proxies/firewalls effortlessly, and native browser `EventSource` automatically reconnects upon disconnection.");
         } else if (msg.contains("recovery") || msg.contains("crash") || msg.contains("reboot") || msg.contains("restart")) {
-            reply.append("### B.Tech Viva Defense: Startup Crash Recovery\n\n")
-                    .append("**Question:** *What happens if the JVM process crashes or the server loses power while jobs are executing?*\n\n")
-                    .append("- When the server reboots, `recoverInterruptedJobs()` runs in `@PostConstruct`.\n")
+            reply.append("### Fault Recovery: Startup Crash Recovery\n\n")
+                    .append("**Abrupt Process Failure Reconciliation:**\n\n")
+                    .append("- When the node reboots, `recoverInterruptedJobs()` runs in `@PostConstruct`.\n")
                     .append("- It scans `jobs` for records left stranded in `RUNNING` status from the previous crash.\n")
                     .append("- It marks the interrupted attempt as `INTERRUPTED` in `job_attempts`, writes the timestamp, and reschedules the job for retry if attempts remain, or fails it gracefully.");
         } else {
-            reply.append("### TaskForge Capstone Defense Assistant (Student Mode)\n\n")
-                    .append("Hello! I am prepared to help you defend any computer science concept in TaskForge.\n\n")
-                    .append("**Current System State:**\n")
-                    .append("- Active Workers: **").append(snapshot.get("activeWorkers")).append("/").append(snapshot.get("totalWorkers")).append("**\n")
-                    .append("- Queue Depth: **").append(snapshot.get("queueSize")).append("/").append(snapshot.get("queueCapacity")).append("**\n")
-                    .append("- Total Succeeded: **").append(snapshot.get("succeededJobs")).append("** | Failed (DLQ): **").append(snapshot.get("failedJobs")).append("**\n\n")
-                    .append("**Key Viva Topics You Can Ask Me:**\n")
-                    .append("1. *\"Explain the producer-consumer pattern in JobQueue\"*\n")
-                    .append("2. *\"Why is task execution outside @Transactional?\"*\n")
-                    .append("3. *\"Explain the exponential backoff formula and jitter\"*\n")
-                    .append("4. *\"Why Server-Sent Events instead of WebSockets?\"*\n")
-                    .append("5. *\"How does crash recovery work on JVM reboot?\"*");
+            reply.append("### TaskForge SRE & Reliability Copilot (Incident Triage Mode)\n\n")
+                    .append("Ready to triage incidents, analyze DLQ root causes, and audit cluster fault tolerance.\n\n")
+                    .append("**Cluster Telemetry:**\n")
+                    .append("- Active Worker Threads: **").append(snapshot.get("activeWorkers")).append("/").append(snapshot.get("totalWorkers")).append("**\n")
+                    .append("- Queue Utilization: **").append(snapshot.get("queueSize")).append("/").append(snapshot.get("queueCapacity")).append("**\n")
+                    .append("- Total Succeeded: **").append(snapshot.get("succeededJobs")).append("** | Dead Letter Queue: **").append(snapshot.get("failedJobs")).append("**\n\n")
+                    .append("**Forensic Directives:**\n")
+                    .append("1. *\"Analyze producer-consumer backpressure invariants\"*\n")
+                    .append("2. *\"Audit two-phase transaction boundaries and connection pool safety\"*\n")
+                    .append("3. *\"Inspect exponential backoff retry jitter formula\"*\n")
+                    .append("4. *\"Verify startup crash recovery and interrupted job guarantees\"*");
         }
 
-        return new ChatResponse(reply.toString(), "STUDENT", actions, snapshot, Instant.now());
+        return new ChatResponse(reply.toString(), requestedPersona, actions, snapshot, Instant.now());
     }
 
     // -------------------------------------------------------------
@@ -393,13 +392,24 @@ public class AssistantService {
     }
 
     // -------------------------------------------------------------
-    // PERSONA 4: NOVICE (Plain English & Simple Analogies)
+    // PERSONA 4: AUDITOR / NOVICE (Audit Trails, SLA Verification & Analogies)
     // -------------------------------------------------------------
-    private ChatResponse handleNoviceQuery(String msg, Map<String, Object> snapshot) {
+    private ChatResponse handleAuditorQuery(String msg, Map<String, Object> snapshot, String requestedPersona) {
         StringBuilder reply = new StringBuilder();
         List<ChatAction> actions = new ArrayList<>();
 
-        if (msg.contains("what is") || msg.contains("explain") || msg.contains("simple") || msg.contains("dumb") || msg.contains("how it works")) {
+        if ("AUDITOR".equalsIgnoreCase(requestedPersona) || msg.contains("audit") || msg.contains("sla") || msg.contains("compliance") || msg.contains("immutable")) {
+            reply.append("### TaskForge Audit & Compliance Copilot (Audit Mode)\n\n")
+                    .append("**Data Integrity & Forensic Audit Specification:**\n\n")
+                    .append("- **Immutable Attempt Logs (`job_attempts`):** Every execution attempt records worker ID, start timestamp, end timestamp, duration, and terminal outcome.\n")
+                    .append("- **Event Chain Integrity (`job_events`):** Monotonically ordered lifecycle events (`JOB_SUBMITTED` -> `JOB_STARTED` -> `JOB_SUCCEEDED` / `JOB_FAILED`).\n")
+                    .append("- **Optimistic Concurrency Lock:** Enforced via Hibernate `@Version` to guarantee zero lost updates or conflicting state transitions across concurrent worker threads.\n")
+                    .append("- **Audit Snapshot:**\n")
+                    .append("  - Succeeded Transactions: **").append(snapshot.get("succeededJobs")).append("**\n")
+                    .append("  - Quarantined (DLQ): **").append(snapshot.get("failedJobs")).append("**\n")
+                    .append("  - Cancelled Operations: **").append(snapshot.get("cancelledJobs")).append("**\n");
+            actions.add(new ChatAction("SUBMIT_SAMPLE", "Run Audited Smoke Test", "Submit audited jobs", "/api/v1/jobs/batch", "POST"));
+        } else if (msg.contains("what is") || msg.contains("explain") || msg.contains("simple") || msg.contains("dumb") || msg.contains("how it works")) {
             reply.append("### What is TaskForge in Simple Words?\n\n")
                     .append("Imagine a busy **restaurant kitchen**:\n\n")
                     .append("1. **Customers ordering food (You / API):** When customers order 50 meals at once, the cashiers can't cook the food immediately. They write order tickets.\n")
@@ -424,15 +434,15 @@ public class AssistantService {
                 actions.add(new ChatAction("REPLAY_DLQ", "Re-cook Failed Tasks", "Replay failed jobs", "/api/v1/jobs/dlq/replay", "POST"));
             }
         } else {
-            reply.append("### Welcome to TaskForge!\n\n")
-                    .append("I am your friendly guide. No technical knowledge required!\n\n")
-                    .append("You can ask me questions like:\n")
-                    .append("- *\"What is this project in simple words?\"*\n")
-                    .append("- *\"Is the system healthy right now?\"*\n")
-                    .append("- *\"Can I run a quick test?\"*");
+            reply.append("### TaskForge Audit & Compliance Guide\n\n")
+                    .append("System integrity is operating under normal SLA parameters.\n\n")
+                    .append("You can query:\n")
+                    .append("- *\"Show immutable audit trail invariants\"*\n")
+                    .append("- *\"Verify SLA and state machine transitions\"*\n")
+                    .append("- *\"Is the cluster healthy right now?\"*");
             actions.add(new ChatAction("SUBMIT_SAMPLE", "Run a 5-Job Test", "Launch sample jobs", "/api/v1/jobs/batch", "POST"));
         }
 
-        return new ChatResponse(reply.toString(), "NOVICE", actions, snapshot, Instant.now());
+        return new ChatResponse(reply.toString(), requestedPersona, actions, snapshot, Instant.now());
     }
 }

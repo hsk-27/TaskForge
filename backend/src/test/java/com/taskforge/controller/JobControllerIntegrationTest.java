@@ -42,12 +42,13 @@ class JobControllerIntegrationTest {
     @BeforeEach
     void setUp() {
         executionEngine.setPaused(true);
-        executionEngine.getQueue().clear();
         jobService.clearAllData();
+        executionEngine.getQueue().clear();
     }
 
     @org.junit.jupiter.api.AfterEach
     void tearDown() {
+        executionEngine.getQueue().clear();
         executionEngine.setPaused(false);
     }
 
@@ -180,6 +181,7 @@ class JobControllerIntegrationTest {
 
     @Test
     void testCreateDelayedJob() throws Exception {
+        executionEngine.getQueue().clear();
         CreateJobRequest request = new CreateJobRequest("Delayed Backup", JobType.REPORT_GENERATION, 5, "{}", 3, 30);
 
         mockMvc.perform(post("/api/v1/jobs")

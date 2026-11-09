@@ -8,13 +8,26 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'monospace'],
+        sans: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        mono: ['"JetBrains Mono"', '"SF Mono"', 'Menlo', 'Consolas', 'monospace'],
       },
       colors: {
-        slate: {
-          925: '#0b0f19',
-          950: '#070a12',
+        canvas: '#08090a',
+        surface: {
+          1: '#0f1012',
+          2: '#141518',
+          3: '#1a1b1f',
+          4: '#222329',
+        },
+        border: {
+          subtle: 'rgba(255, 255, 255, 0.05)',
+          default: 'rgba(255, 255, 255, 0.08)',
+          strong: 'rgba(255, 255, 255, 0.16)',
+        },
+        brand: {
+          DEFAULT: '#4f46e5',
+          hover: '#4338ca',
+          subtle: 'rgba(99, 102, 241, 0.12)',
         }
       }
     },

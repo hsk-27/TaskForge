@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import {
   Activity,
-  Bot,
   Cpu,
-  HardDrive,
   Layers,
-  Leaf,
   Pause,
   Play,
   RotateCcw,
+  Sparkles,
   Terminal,
   Volume2,
   VolumeX,
@@ -30,14 +28,12 @@ export const Header: React.FC<HeaderProps> = ({
   status,
   sseConnected,
   onTogglePause,
-  onToggleEcoMode,
   onClearData,
   onOpenCommandPalette,
   onOpenChat,
 }) => {
   const isRunning = status?.isRunning ?? false;
   const isPaused = status?.isPaused ?? false;
-  const ecoMode = status?.ecoMode ?? true;
   const [audioActive, setAudioActive] = useState(audioTelemetry.isEnabled());
 
   const handleToggleAudio = () => {
@@ -46,147 +42,127 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="h-14 border-b border-slate-800 bg-[#0d1424] px-4 flex items-center justify-between sticky top-0 z-30 font-sans select-none shadow-sm">
-      {/* Brand & Subsystem Identity */}
+    <header className="h-14 border-b border-white/[0.08] bg-[#0d0e11] px-4 flex items-center justify-between sticky top-0 z-30 font-sans select-none">
+      {/* Enterprise Organization & Cluster Switcher */}
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-sm">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/20 to-indigo-600/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-semibold text-xs tracking-wider shadow-inner">
           TF
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-sm font-semibold text-slate-100 tracking-tight">
+            <h1 className="text-sm font-semibold text-zinc-100 tracking-tight">
               TaskForge
             </h1>
-            <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-              v1.1
+            <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              PROD
+            </span>
+            <span className="text-[11px] text-zinc-500 hidden md:inline">
+              /
+            </span>
+            <span className="text-[11px] text-zinc-400 font-mono hidden md:inline">
+              cluster-us-east-1a
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 hidden sm:block">
-            Asynchronous Job Execution &amp; Fault Recovery Engine
+          <p className="text-[11px] text-zinc-500 hidden sm:block">
+            Distributed Task Orchestration &amp; Reliable Workflows
           </p>
         </div>
       </div>
 
-      {/* Telemetry Readouts & System Controls */}
-      <div className="flex items-center gap-2 flex-wrap">
+      {/* Real-time Telemetry & Global Controls */}
+      <div className="flex items-center gap-2">
         {/* Command Palette Trigger */}
         {onOpenCommandPalette && (
           <button
             onClick={onOpenCommandPalette}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-md transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 border border-white/[0.08] hover:border-white/[0.15] rounded-md transition-colors shadow-sm"
             title="Open Command Palette (Ctrl+K / Cmd+K)"
           >
-            <Terminal className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="hidden sm:inline font-mono text-[11px] text-slate-400">Ctrl+K</span>
+            <Terminal className="w-3.5 h-3.5 text-zinc-400" />
+            <span className="hidden sm:inline font-mono text-[11px] text-zinc-400">Ctrl+K</span>
           </button>
         )}
 
-        {/* Assistant Trigger */}
+        {/* Enterprise Ops Copilot Trigger */}
         {onOpenChat && (
           <button
             onClick={onOpenChat}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 rounded-md transition-colors shadow-sm"
-            title="Open ForgeBot Assistant (Ctrl+/)"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:border-indigo-500/50 rounded-md transition-colors shadow-sm"
+            title="Open TaskForge Ops Copilot (Ctrl+/)"
           >
-            <Bot className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="hidden sm:inline font-mono text-[11px] text-indigo-300">Ctrl+/</span>
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="font-medium text-xs">Ops Copilot</span>
+            <span className="hidden sm:inline font-mono text-[10px] text-indigo-400/80 bg-indigo-500/20 px-1 py-0.2 rounded">Ctrl+/</span>
           </button>
         )}
 
         {/* Audio Telemetry Toggle */}
         <button
           onClick={handleToggleAudio}
-          className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium border rounded-md transition-colors ${
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium border rounded-md transition-colors ${
             audioActive
-              ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30 hover:bg-indigo-500/20'
-              : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:text-slate-200 hover:bg-slate-800'
+              ? 'bg-zinc-900 text-zinc-200 border-white/[0.12] hover:bg-zinc-800'
+              : 'bg-zinc-900/60 text-zinc-500 border-white/[0.06] hover:text-zinc-300 hover:bg-zinc-800'
           }`}
-          title={audioActive ? 'Audio telemetry active (click to mute)' : 'Enable audio chimes for state changes'}
+          title={audioActive ? 'Audio telemetry active (click to mute)' : 'Enable sound telemetry for state changes'}
         >
-          {audioActive ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-          <span className="hidden md:inline text-[11px]">{audioActive ? 'Chimes On' : 'Muted'}</span>
+          {audioActive ? <Volume2 className="w-3.5 h-3.5 text-zinc-300" /> : <VolumeX className="w-3.5 h-3.5" />}
+          <span className="hidden md:inline text-[11px]">{audioActive ? 'Chimes' : 'Muted'}</span>
         </button>
 
-        {/* SSE Liveness */}
+        {/* SSE Telemetry Link Status */}
         <div
-          className={`flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md border font-medium ${
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-md border font-medium ${
             sseConnected
               ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-              : 'bg-slate-900 text-slate-400 border-slate-800'
+              : 'bg-zinc-900 text-zinc-500 border-white/[0.06]'
           }`}
-          title={sseConnected ? 'Connected to live event stream' : 'Event stream disconnected'}
+          title={sseConnected ? 'Connected to cluster event telemetry' : 'Event telemetry stream offline'}
         >
-          <span className={`w-2 h-2 rounded-full ${sseConnected ? 'bg-emerald-400' : 'bg-slate-500'}`} />
-          <span className="text-[11px]">{sseConnected ? 'Live' : 'Offline'}</span>
+          <span className={`w-1.5 h-1.5 rounded-full ${sseConnected ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'bg-zinc-600'}`} />
+          <span className="text-[11px] font-mono">{sseConnected ? 'STREAM ACTIVE' : 'DISCONNECTED'}</span>
         </div>
 
-        {/* RAM Footprint */}
-        <div
-          className="hidden md:flex items-center gap-1.5 px-2.5 py-1 text-xs bg-slate-900/60 border border-slate-800 text-slate-300 rounded-md font-mono text-[11px]"
-          title={`JVM Heap: ${status?.jvmUsedMemoryMb ?? 0} MB used / ${status?.jvmMaxMemoryMb ?? 0} MB maximum`}
-        >
-          <HardDrive className="w-3.5 h-3.5 text-slate-400" />
-          <span>RAM: {status?.jvmUsedMemoryMb ?? 0} / {status?.jvmMaxMemoryMb ?? 0} MB</span>
+        {/* Worker Pool Count Pill */}
+        <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-zinc-900/80 text-zinc-300 border border-white/[0.08] rounded-md font-mono text-[11px]">
+          <Cpu className="w-3.5 h-3.5 text-zinc-400" />
+          <span>Workers:</span>
+          <span className="text-zinc-100 font-semibold">{status?.activeWorkers ?? 0}/{status?.workerCount ?? 0}</span>
         </div>
 
-        {/* Worker Allocation */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-slate-900/60 border border-slate-800 text-slate-300 rounded-md font-mono text-[11px]">
-          <Cpu className="w-3.5 h-3.5 text-amber-400" />
-          <span>Workers: {status?.activeWorkers ?? 0}/{status?.workerCount ?? 0}</span>
+        {/* Bounded Queue Depth Pill */}
+        <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-zinc-900/80 text-zinc-300 border border-white/[0.08] rounded-md font-mono text-[11px]">
+          <Layers className="w-3.5 h-3.5 text-zinc-400" />
+          <span>Queue:</span>
+          <span className="text-zinc-100 font-semibold">{status?.queueSize ?? 0}/{status?.queueCapacity ?? 0}</span>
         </div>
 
-        {/* Queue Depth */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-slate-900/60 border border-slate-800 text-slate-300 rounded-md font-mono text-[11px]">
-          <Layers className="w-3.5 h-3.5 text-indigo-400" />
-          <span>Queue: {status?.queueSize ?? 0}/{status?.queueCapacity ?? 0}</span>
-        </div>
-
-        {/* Eco-Safe Throttle Switch */}
-        {onToggleEcoMode && (
-          <button
-            onClick={onToggleEcoMode}
-            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium border rounded-md transition-colors ${
-              ecoMode
-                ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20'
-                : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
-            }`}
-            title="Toggle PC-Safe low-resource CPU throttling"
-          >
-            <Leaf className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline text-[11px]">Eco: {ecoMode ? 'On' : 'Off'}</span>
-          </button>
-        )}
-
-        {/* Database Purge / Reset */}
-        {onClearData && (
-          <button
-            onClick={() => {
-              if (window.confirm('Reset engine state: Clear queue buffers, attempts, and historical events?')) {
-                onClearData();
-              }
-            }}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-slate-900/60 hover:bg-rose-950/40 hover:text-rose-300 hover:border-rose-500/30 text-slate-400 border border-slate-800 rounded-md transition-colors"
-            title="Clear all job records and reset execution queue"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span className="hidden lg:inline text-[11px]">Reset</span>
-          </button>
-        )}
-
-        {/* Engine Dispatch Control (Pause/Resume) */}
+        {/* Pause/Resume Cluster Processing */}
         <button
           onClick={onTogglePause}
           disabled={!isRunning}
-          className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md border transition-colors shadow-sm ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border transition-colors shadow-sm ${
             isPaused
-              ? 'bg-amber-500 text-slate-950 border-amber-400 hover:bg-amber-400 font-semibold'
-              : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+              ? 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20'
+              : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border-white/[0.08] hover:border-white/[0.15]'
           }`}
-          title={isPaused ? 'Resume job dispatching' : 'Pause job dispatching'}
+          title={isPaused ? 'Resume worker queue ingestion' : 'Pause worker queue ingestion'}
         >
           {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-          <span>{isPaused ? 'Resume' : 'Pause'}</span>
+          <span>{isPaused ? 'Resume Ingestion' : 'Pause Engine'}</span>
         </button>
+
+        {/* Clear Data / Reset */}
+        {onClearData && (
+          <button
+            onClick={onClearData}
+            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-md transition-colors shadow-sm"
+            title="Purge all jobs from database and clear queue"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Reset Cluster</span>
+          </button>
+        )}
       </div>
     </header>
   );

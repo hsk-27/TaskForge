@@ -20,8 +20,8 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({ metrics, status }) =
       label: 'Total Processed',
       value: metrics?.totalJobs ?? 0,
       icon: Layers,
-      color: 'text-slate-300',
-      badgeColor: 'bg-slate-700/40 text-slate-300',
+      color: 'text-zinc-400',
+      badgeColor: 'bg-zinc-800 text-zinc-300',
       sub: `${metrics?.queuedJobs ?? 0} queued · ${metrics?.runningJobs ?? 0} active`,
     },
     {
@@ -30,7 +30,7 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({ metrics, status }) =
       icon: CheckCircle2,
       color: 'text-emerald-400',
       badgeColor: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
-      sub: `${metrics?.successRatePercent ?? 0}% success rate`,
+      sub: `${metrics?.successRatePercent ?? 0}% success SLA`,
     },
     {
       label: 'Failed (Permanent)',
@@ -44,9 +44,9 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({ metrics, status }) =
       label: 'Worker Pool',
       value: `${status?.activeWorkers ?? 0} / ${status?.workerCount ?? 0}`,
       icon: Cpu,
-      color: 'text-amber-400',
-      badgeColor: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
-      sub: `${status?.activeWorkers ? Math.round((status.activeWorkers / (status.workerCount || 1)) * 100) : 0}% utilization`,
+      color: 'text-indigo-400',
+      badgeColor: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20',
+      sub: `${status?.activeWorkers ? Math.round((status.activeWorkers / (status.workerCount || 1)) * 100) : 0}% fleet load`,
     },
     {
       label: 'Avg Execution Time',
@@ -54,14 +54,14 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({ metrics, status }) =
       icon: Clock,
       color: 'text-sky-400',
       badgeColor: 'bg-sky-500/10 text-sky-400 border border-sky-500/20',
-      sub: `Queue wait: ${metrics?.averageQueueWaitDurationMs ?? 0} ms`,
+      sub: `Queue latency: ${metrics?.averageQueueWaitDurationMs ?? 0} ms`,
     },
     {
       label: 'Throughput',
       value: `${metrics?.throughputPerMinute ?? 0}/min`,
       icon: Zap,
-      color: 'text-indigo-400',
-      badgeColor: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20',
+      color: 'text-amber-400',
+      badgeColor: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
       sub: 'Trailing 60s window',
     },
   ];
@@ -73,16 +73,16 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({ metrics, status }) =
         return (
           <div
             key={idx}
-            className="p-3.5 bg-[#101726] border border-slate-800 rounded-lg shadow-sm flex flex-col justify-between hover:border-slate-700/80 transition-colors"
+            className="p-3.5 bg-[#121316] border border-white/[0.08] hover:border-white/[0.15] rounded-lg shadow-sm flex flex-col justify-between transition-colors"
           >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-slate-400">{card.label}</span>
-              <Icon className={`w-4 h-4 ${card.color}`} />
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider">{card.label}</span>
+              <Icon className={`w-3.5 h-3.5 ${card.color}`} />
             </div>
-            <div className="text-2xl font-bold font-mono text-slate-100 tracking-tight my-1">
+            <div className="text-xl font-semibold font-mono text-zinc-100 tracking-tight my-1">
               {card.value}
             </div>
-            <div className="text-[11px] text-slate-400 font-mono truncate">{card.sub}</div>
+            <div className="text-[11px] text-zinc-500 font-mono truncate">{card.sub}</div>
           </div>
         );
       })}

@@ -692,6 +692,10 @@ public class ExecutionEngine {
                 }
 
                 if (jobId != null) {
+                    if (isPaused.get()) {
+                        queue.offer(jobId);
+                        continue;
+                    }
                     processJob(jobId);
                 } else if (ecoMode.get()) {
                     try {

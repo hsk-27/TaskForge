@@ -39,12 +39,12 @@ public class AssistantController {
     public ResponseEntity<List<String>> getSuggestions(@RequestParam(defaultValue = "DEVELOPER") String persona) {
         String cleanPersona = persona != null ? persona.trim().toUpperCase() : "DEVELOPER";
         List<String> suggestions = switch (cleanPersona) {
-            case "STUDENT" -> List.of(
-                    "Explain the producer-consumer pattern in JobQueue",
-                    "Why is task execution outside @Transactional?",
-                    "Explain the exponential backoff formula and jitter",
-                    "Why Server-Sent Events instead of WebSockets?",
-                    "How does crash recovery work on JVM reboot?"
+            case "SRE", "STUDENT" -> List.of(
+                    "Analyze producer-consumer backpressure invariants",
+                    "Triage Dead Letter Queue (DLQ) and root cause errors",
+                    "Audit two-phase transaction boundaries and connection pool safety",
+                    "Inspect exponential backoff retry jitter formula",
+                    "Verify startup crash recovery and interrupted job guarantees"
             );
             case "OPERATOR" -> List.of(
                     "Show cluster health and worker pool load",
@@ -53,10 +53,10 @@ public class AssistantController {
                     "Cancel all pending queued tasks",
                     "Dispatch 5-job smoke test"
             );
-            case "NOVICE" -> List.of(
-                    "What is TaskForge in simple words?",
+            case "AUDITOR", "NOVICE" -> List.of(
+                    "Show immutable audit trail invariants",
+                    "Verify SLA and state machine transitions",
                     "Is the system healthy right now?",
-                    "Can I run a quick test?",
                     "What happens when a task fails?"
             );
             default -> List.of(

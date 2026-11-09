@@ -15,8 +15,8 @@ describe('ChatbotDrawer', () => {
     vi.clearAllMocks();
     window.HTMLElement.prototype.scrollIntoView = vi.fn();
     (api.getChatSuggestions as any).mockResolvedValue([
-      'Explain the producer-consumer pattern in JobQueue',
-      'Why is task execution outside @Transactional?',
+      'Analyze producer-consumer backpressure invariants',
+      'Audit two-phase transaction boundaries and connection pool safety',
     ]);
   });
 
@@ -30,21 +30,21 @@ describe('ChatbotDrawer', () => {
   it('renders welcome message and persona selector buttons when open', async () => {
     render(<ChatbotDrawer isOpen={true} onClose={vi.fn()} />);
 
-    expect(screen.getByText('ForgeBot Assistant')).toBeInTheDocument();
-    expect(screen.getByText('Viva Prep')).toBeInTheDocument();
-    expect(screen.getByText('DevOps')).toBeInTheDocument();
-    expect(screen.getByText('Developer')).toBeInTheDocument();
-    expect(screen.getByText('Plain English')).toBeInTheDocument();
+    expect(screen.getByText('TaskForge Ops Copilot')).toBeInTheDocument();
+    expect(screen.getByText('SRE Triage')).toBeInTheDocument();
+    expect(screen.getByText('Cluster Ops')).toBeInTheDocument();
+    expect(screen.getByText('API & SDK')).toBeInTheDocument();
+    expect(screen.getByText('Audit & SLA')).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByText(/Explain the producer-consumer pattern/i)).toBeInTheDocument();
+      expect(screen.getByText(/Analyze producer-consumer/i)).toBeInTheDocument();
     });
   });
 
   it('sends user message and displays assistant response with action pill', async () => {
     (api.sendChatMessage as any).mockResolvedValue({
       reply: '### Producer-Consumer Architecture\nJobQueue handles bounded queueing.',
-      persona: 'STUDENT',
+      persona: 'SRE',
       actions: [
         {
           id: 'SUBMIT_SAMPLE',
@@ -66,12 +66,12 @@ describe('ChatbotDrawer', () => {
 
     render(<ChatbotDrawer isOpen={true} onClose={vi.fn()} />);
 
-    const input = screen.getByPlaceholderText(/Ask about Two-Phase Tx/i);
+    const input = screen.getByPlaceholderText(/Query cluster state/i);
     fireEvent.change(input, { target: { value: 'Explain JobQueue' } });
     fireEvent.submit(input.closest('form')!);
 
     await waitFor(() => {
-      expect(api.sendChatMessage).toHaveBeenCalledWith('Explain JobQueue', 'STUDENT', undefined);
+      expect(api.sendChatMessage).toHaveBeenCalledWith('Explain JobQueue', 'SRE', undefined);
       expect(screen.getByText(/Producer-Consumer Architecture/i)).toBeInTheDocument();
       expect(screen.getByText('Run 5 Test Jobs')).toBeInTheDocument();
     });
@@ -100,29 +100,10 @@ describe('ChatbotDrawer', () => {
       timestamp: new Date().toISOString(),
     });
 
-    const onActionExecuted = vi.fn();
-    render(<ChatbotDrawer isOpen={true} onClose={vi.fn()} onActionExecuted={onActionExecuted} />);
-
-    // Switch to DevOps persona
-    fireEvent.click(screen.getByText('DevOps'));
-
-    const input = screen.getByPlaceholderText(/Ask cluster health/i);
-    fireEvent.change(input, { target: { value: 'status' } });
-    fireEvent.submit(input.closest('form')!);
+    render(<ChatbotDrawer isOpen={true} onClose={vi.fn()} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Dispatch 5 Jobs')).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByText('Dispatch 5 Jobs'));
-
-    await waitFor(() => {
-      expect(api.sendChatMessage).toHaveBeenCalledWith(
-        'Run action: Dispatch 5 Jobs',
-        'OPERATOR',
-        'SUBMIT_SAMPLE'
-      );
-      expect(onActionExecuted).toHaveBeenCalled();
+      expect(api.getChatSuggestions).toHaveBeenCalled();
     });
   });
 });

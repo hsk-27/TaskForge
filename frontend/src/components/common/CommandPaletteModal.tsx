@@ -252,22 +252,22 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-start justify-center pt-20 px-4 font-sans select-none"
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-start justify-center pt-20 px-4 font-sans select-none"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl bg-[#101726] border border-slate-800 rounded-xl shadow-2xl flex flex-col overflow-hidden"
+        className="w-full max-w-2xl bg-[#121316] border border-white/[0.08] rounded-xl shadow-2xl flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header bar */}
-        <div className="flex items-center gap-2 px-4 py-3 bg-[#0d1424] border-b border-slate-800 text-xs text-slate-300">
+        <div className="flex items-center gap-2 px-4 py-3 bg-[#0d0e11] border-b border-white/[0.08] text-xs text-zinc-300">
           <Terminal className="w-4 h-4 text-indigo-400" />
-          <span className="font-semibold text-slate-100">Command Palette</span>
-          <span className="ml-auto text-[11px] font-mono text-slate-400">Esc to close</span>
+          <span className="font-semibold text-zinc-100">Command Palette</span>
+          <span className="ml-auto text-[11px] font-mono text-zinc-500">Esc to close</span>
         </div>
 
         {/* Search input */}
-        <div className="p-3 bg-[#0b0f17] border-b border-slate-800">
+        <div className="p-3 bg-[#08090a] border-b border-white/[0.08]">
           <input
             ref={inputRef}
             type="text"
@@ -275,14 +275,14 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type a command or keyword (e.g. /burst, /pipeline, /eco, /workers)..."
-            className="w-full bg-[#101726] border border-slate-700/80 rounded-lg px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-500 transition-colors"
+            className="w-full bg-[#121316] border border-white/[0.08] rounded-lg px-3.5 py-2.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 transition-colors font-sans"
           />
         </div>
 
         {/* Command list */}
-        <div className="max-h-96 overflow-y-auto divide-y divide-slate-800/60 bg-[#101726]">
+        <div className="max-h-96 overflow-y-auto divide-y divide-white/[0.05] bg-[#121316]">
           {filteredCommands.length === 0 ? (
-            <div className="p-6 text-center text-xs text-slate-400">
+            <div className="p-6 text-center text-xs text-zinc-500">
               No commands matching &quot;{query}&quot;
             </div>
           ) : (
@@ -295,30 +295,30 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                   onClick={() => executeCommand(cmd)}
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`px-4 py-3 cursor-pointer flex items-center justify-between gap-3 transition-colors ${
-                    isSelected ? 'bg-indigo-600/15' : 'hover:bg-slate-800/40'
+                    isSelected ? 'bg-indigo-600/15 text-indigo-300' : 'hover:bg-white/[0.02]'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
                       className={`p-2 rounded-md ${
-                        isSelected ? 'bg-indigo-600/30 text-indigo-300' : 'bg-slate-800 text-slate-400'
+                        isSelected ? 'bg-indigo-600/30 text-indigo-300' : 'bg-zinc-900 text-zinc-400 border border-white/[0.05]'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className={`text-xs font-semibold ${isSelected ? 'text-indigo-300' : 'text-slate-100'}`}>
+                        <span className={`text-xs font-semibold ${isSelected ? 'text-indigo-300' : 'text-zinc-100'}`}>
                           {cmd.name}
                         </span>
-                        <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700">
+                        <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-400 border border-white/[0.08]">
                           {cmd.syntax}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-400 truncate mt-0.5">{cmd.description}</p>
+                      <p className="text-[11px] text-zinc-400 truncate mt-0.5">{cmd.description}</p>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono text-slate-400 px-1.5 py-0.5 rounded bg-slate-800/50 shrink-0">
+                  <span className="text-[10px] font-mono text-zinc-500 px-1.5 py-0.5 rounded bg-zinc-900 border border-white/[0.05] shrink-0">
                     {cmd.category}
                   </span>
                 </div>
