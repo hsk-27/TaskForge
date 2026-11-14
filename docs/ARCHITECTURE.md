@@ -177,7 +177,33 @@ Real-time UI telemetry must be non-blocking and low-latency without constant fro
 
 ---
 
-## 6. Monorepo Directory Structure
+## 6. Distributed Idempotency & Deduplication Engine
+
+In high-concurrency distributed systems, network retries from upstream clients often resubmit the same task. Without deduplication, this leads to double-execution bugs (e.g. charging a payment twice).
+
+TaskForge implements a database-enforced deduplication engine:
+1. **Flyway Migration `V2__add_idempotency_key.sql`:**
+   ```sql
+   ALTER TABLE jobs ADD COLUMN idempotency_key VARCHAR(128);
+   CREATE UNIQUE INDEX idx_jobs_idempotency_key ON jobs(idempotency_key);
+   ```
+2. **Atomic Verification in `JobService.createJob()`:**
+   - Checks if `request.idempotencyKey()` is non-null.
+   - Queries `jobRepository.findByIdempotencyKey(key)`.
+   - If present, returns the existing job immediately (`200 OK`) and logs a `JOB_DEDUPLICATED` event without enqueuing any duplicate workload.
+
+---
+
+## 7. Sequential DAG Pipeline Hierarchy
+
+Workflows composed of multiple sequential stages declare dependencies via `dependsOnJobId`:
+1. **Post-Commit Queueing:** A dependent child task is only submitted to the in-memory queue after its parent task completes with status `SUCCEEDED` and commits to disk.
+2. **Cascading Abort:** If an upstream step fails permanently (exhausting retries) or is cancelled by an operator, `JobService.cancelJob()` or the failure handler immediately traverses downstream descendants and transitions them to `CANCELLED` with a `CASCADE_ABORT` audit event.
+3. **DAG Resolution Endpoint (`GET /api/v1/jobs/{id}/dag`):** Dynamically reconstructs the pipeline graph by finding the upstream parent and all downstream dependents.
+
+---
+
+## 8. Monorepo Directory Structure
 
 ```
 taskforge/

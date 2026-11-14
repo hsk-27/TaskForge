@@ -18,11 +18,12 @@ OpenAPI JSON Specification: `http://localhost:8080/api-docs`
   "priority": 1,
   "payload": "{\"limit\": 10000}",
   "maxAttempts": 3,
-  "delaySeconds": 0
+  "delaySeconds": 0,
+  "idempotencyKey": "order-settle-txn-982314"
 }
 ```
-*Note: If `delaySeconds > 0`, the job enters `RETRY_WAIT` status and transitions to `QUEUED` automatically once the scheduled execution timestamp is reached.*
-- **Response** (`201 Created`):
+*Note: If `idempotencyKey` is provided and a job with this key already exists, the server atomically deduplicates the submission and returns the existing task (`200 OK`) without repeating execution side effects. If `delaySeconds > 0`, the job enters `RETRY_WAIT` status and transitions to `QUEUED` automatically once the scheduled execution timestamp is reached.*
+- **Response** (`201 Created` or `200 OK` on deduplication):
 ```json
 {
   "id": "e30dcda7-5757-4148-8df0-7d6f51bfd0be",
@@ -34,6 +35,7 @@ OpenAPI JSON Specification: `http://localhost:8080/api-docs`
   "createdAt": "2026-10-18T12:00:00Z",
   "attemptCount": 0,
   "maxAttempts": 3,
+  "idempotencyKey": "order-settle-txn-982314",
   "version": 0
 }
 ```
@@ -82,7 +84,44 @@ OpenAPI JSON Specification: `http://localhost:8080/api-docs`
 - **Response** (`200 OK`): Full `JobResponse` object.
 - **Error Response**: `404 Not Found` if job ID does not exist.
 
-### 1.5 Get Attempt History
+### 1.5 Get Job DAG Hierarchy
+- **Method**: `GET /api/v1/jobs/{id}/dag`
+- **Response** (`200 OK`):
+```json
+{
+  "currentJob": {
+    "id": "e30dcda7-5757-4148-8df0-7d6f51bfd0be",
+    "name": "Pipeline Step 2 - Data Enrichment",
+    "jobType": "DATA_PROCESSING",
+    "status": "RUNNING",
+    "priority": 5,
+    "payload": "{\"dependsOnJobId\":\"8f64dc55...\",\"pipelineStep\":2}",
+    "createdAt": "2026-11-14T10:00:00Z",
+    "attemptCount": 1,
+    "maxAttempts": 3,
+    "workerId": "taskforge-worker-1",
+    "executionDurationMs": 45,
+    "queueWaitDurationMs": 12,
+    "idempotencyKey": null,
+    "version": 1
+  },
+  "parentJob": {
+    "id": "8f64dc55-481a-4cdd-987c-bcdbc307967a",
+    "name": "Pipeline Step 1 - Ingestion",
+    "status": "SUCCEEDED"
+  },
+  "downstreamJobs": [
+    {
+      "id": "b2c3d4e5-6789-4012-89ab-cdef01234567",
+      "name": "Pipeline Step 3 - Settlement",
+      "status": "QUEUED"
+    }
+  ],
+  "pipelineStep": 2
+}
+```
+
+### 1.6 Get Attempt History
 - **Method**: `GET /api/v1/jobs/{id}/attempts`
 - **Response** (`200 OK`):
 ```json
@@ -235,53 +274,53 @@ OpenAPI JSON Specification: `http://localhost:8080/api-docs`
 
 ---
 
-## 5. Intelligent Assistant API (`/api/v1/assistant`)
+## 5. TaskForge Ops Copilot API (`/api/v1/assistant`)
 
 ### 5.1 Submit Query / Action Directive
 - **Method**: `POST /api/v1/assistant/chat`
 - **Request Body**:
 ```json
 {
-  "message": "Explain the producer-consumer pattern in TaskForge",
-  "persona": "STUDENT",
+  "message": "Why are jobs failing in the Dead Letter Queue?",
+  "persona": "SRE",
   "actionId": null
 }
 ```
-*Personas: `STUDENT` (Viva prep), `OPERATOR` (DevOps & health), `DEVELOPER` (APIs & schemas), `NOVICE` (Plain English analogies).*
+*Enterprise Personas: `SRE` (Root cause analysis & incident triage), `OPERATOR` (Fleet health & capacity operations), `DEVELOPER` (SDKs & REST integration), `AUDITOR` (Compliance, SLA percentiles & ACID guarantees).*
 - **Response** (`200 OK`):
 ```json
 {
-  "reply": "### B.Tech Viva Defense: Producer-Consumer Architecture...",
-  "persona": "STUDENT",
+  "reply": "### SRE Incident Triage Diagnostic: DLQ Root Cause Analysis...",
+  "persona": "SRE",
   "actions": [
     {
-      "id": "SUBMIT_SAMPLE",
-      "label": "Run 5-Job Smoke Test",
-      "description": "Submit 5 compute jobs",
-      "endpoint": "/api/v1/jobs/batch",
+      "id": "REPLAY_DLQ",
+      "label": "Replay All in DLQ",
+      "description": "Re-enqueue all terminal failed jobs for execution",
+      "endpoint": "/api/v1/jobs/replay-dlq",
       "httpMethod": "POST"
     }
   ],
   "systemSnapshot": {
     "activeWorkers": 0,
-    "totalWorkers": 4,
+    "totalWorkers": 2,
     "queueSize": 0,
     "queueCapacity": 100,
-    "failedJobs": 0
+    "failedJobs": 4
   },
-  "timestamp": "2026-11-03T14:26:30Z"
+  "timestamp": "2026-11-14T10:30:00Z"
 }
 ```
 
-### 5.2 Get Suggested Questions
-- **Method**: `GET /api/v1/assistant/suggestions?persona=STUDENT`
+### 5.2 Get Suggested Prompts
+- **Method**: `GET /api/v1/assistant/suggestions?persona=SRE`
 - **Response** (`200 OK`):
 ```json
 [
-  "Explain the producer-consumer pattern in JobQueue",
-  "Why is task execution outside @Transactional?",
-  "Explain the exponential backoff formula and jitter",
-  "Why Server-Sent Events instead of WebSockets?",
-  "How does crash recovery work on JVM reboot?"
+  "Why are jobs failing in the Dead Letter Queue?",
+  "How does TaskForge prevent duplicate execution with idempotency keys?",
+  "Analyze queue backpressure and explain the 429 status code",
+  "How does the DAG scheduler handle cascading aborts on upstream failures?",
+  "Audit the two-phase transaction boundaries and thread preemption"
 ]
 ```
