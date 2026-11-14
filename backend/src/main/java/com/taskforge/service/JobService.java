@@ -7,6 +7,7 @@ import com.taskforge.dto.request.BatchJobRequest;
 import com.taskforge.dto.request.CreateJobRequest;
 import com.taskforge.dto.response.BatchJobResponse;
 import com.taskforge.dto.response.JobAttemptResponse;
+import com.taskforge.dto.response.JobDagResponse;
 import com.taskforge.dto.response.JobEventResponse;
 import com.taskforge.dto.response.JobResponse;
 import com.taskforge.engine.ExecutionEngine;
@@ -58,12 +59,25 @@ public class JobService {
 
     @Transactional
     public JobResponse createJob(CreateJobRequest request) {
+        // Idempotency check: prevent duplicate submissions
+        if (request.idempotencyKey() != null && !request.idempotencyKey().isBlank()) {
+            String key = request.idempotencyKey().trim();
+            java.util.Optional<Job> existing = jobRepository.findByIdempotencyKey(key);
+            if (existing.isPresent()) {
+                Job dup = existing.get();
+                log.info("Job creation deduplicated via idempotency key [{}], returning existing job [{}]", key, dup.getId());
+                eventPublisher.publishEvent(dup, "JOB_DEDUPLICATED", "Submission deduplicated via idempotency key: " + key);
+                return JobResponse.fromEntity(dup);
+            }
+        }
+
         Job job = new Job(
                 request.name(),
                 request.jobType(),
                 request.resolvedPriority(),
                 request.payload(),
-                request.resolvedMaxAttempts()
+                request.resolvedMaxAttempts(),
+                request.idempotencyKey() != null && !request.idempotencyKey().isBlank() ? request.idempotencyKey().trim() : null
         );
 
         boolean isDelayed = request.resolvedDelaySeconds() > 0;
@@ -188,6 +202,36 @@ public class JobService {
                 ? String.format("Submitted sequential workflow pipeline with %d steps", count)
                 : String.format("Submitted %d jobs to persistent storage", count);
         return new BatchJobResponse(count, rejected, ids, msg);
+    }
+
+    private static final java.util.regex.Pattern PIPELINE_STEP_PATTERN =
+            java.util.regex.Pattern.compile("\"pipelineStep\"\\s*:\\s*(\\d+)");
+
+    private Integer extractPipelineStep(String payload) {
+        if (payload == null || payload.isBlank()) return null;
+        java.util.regex.Matcher m = PIPELINE_STEP_PATTERN.matcher(payload);
+        if (m.find()) {
+            try {
+                return Integer.parseInt(m.group(1));
+            } catch (NumberFormatException ignored) {}
+        }
+        return null;
+    }
+
+    @Transactional(readOnly = true)
+    public JobDagResponse getJobDag(String id) {
+        Job job = jobRepository.findById(id).orElseThrow(() -> new JobNotFoundException(id));
+        String parentId = executionEngine.extractDependsOnJobId(job.getPayload());
+        Job parent = (parentId != null && !parentId.isBlank()) ? jobRepository.findById(parentId).orElse(null) : null;
+        List<Job> dependents = jobRepository.findDependentJobs(id);
+        Integer pipelineStep = extractPipelineStep(job.getPayload());
+
+        return new JobDagResponse(
+                JobResponse.fromEntity(job),
+                parent != null ? JobResponse.fromEntity(parent) : null,
+                dependents.stream().map(JobResponse::fromEntity).toList(),
+                pipelineStep
+        );
     }
 
     @Transactional(readOnly = true)

@@ -80,6 +80,9 @@ public class Job {
     @Column(name = "queue_wait_duration_ms")
     private Long queueWaitDurationMs;
 
+    @Column(name = "idempotency_key", length = 128, unique = true)
+    private String idempotencyKey;
+
     @Version
     @Column(name = "version", nullable = false)
     private Long version;
@@ -88,6 +91,10 @@ public class Job {
     }
 
     public Job(String name, JobType jobType, int priority, String payload, int maxAttempts) {
+        this(name, jobType, priority, payload, maxAttempts, null);
+    }
+
+    public Job(String name, JobType jobType, int priority, String payload, int maxAttempts, String idempotencyKey) {
         this.id = UUID.randomUUID().toString();
         this.name = Objects.requireNonNull(name, "Job name cannot be null");
         this.jobType = Objects.requireNonNull(jobType, "JobType cannot be null");
@@ -97,6 +104,7 @@ public class Job {
         this.createdAt = Instant.now();
         this.attemptCount = 0;
         this.maxAttempts = Math.max(1, maxAttempts);
+        this.idempotencyKey = idempotencyKey;
     }
 
     public void transitionTo(JobStatus newStatus) {
@@ -308,5 +316,13 @@ public class Job {
 
     public void setVersion(Long version) {
         this.version = version;
+    }
+
+    public String getIdempotencyKey() {
+        return idempotencyKey;
+    }
+
+    public void setIdempotencyKey(String idempotencyKey) {
+        this.idempotencyKey = idempotencyKey;
     }
 }

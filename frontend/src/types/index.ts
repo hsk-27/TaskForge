@@ -19,7 +19,15 @@ export interface Job {
   workerId?: string;
   executionDurationMs?: number;
   queueWaitDurationMs?: number;
+  idempotencyKey?: string;
   version: number;
+}
+
+export interface JobDagInfo {
+  currentJob: Job;
+  parentJob?: Job;
+  downstreamJobs: Job[];
+  pipelineStep?: number;
 }
 
 export interface JobAttempt {

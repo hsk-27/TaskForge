@@ -23,7 +23,8 @@ public record JobResponse(
         String workerId,
         Long executionDurationMs,
         Long queueWaitDurationMs,
-        Long version
+        Long version,
+        String idempotencyKey
 ) {
     public static JobResponse fromEntity(Job job) {
         if (job == null) return null;
@@ -44,7 +45,8 @@ public record JobResponse(
                 job.getWorkerId(),
                 job.getExecutionDurationMs(),
                 job.getQueueWaitDurationMs(),
-                job.getVersion()
+                job.getVersion(),
+                job.getIdempotencyKey()
         );
     }
 }

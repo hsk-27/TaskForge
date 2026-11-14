@@ -222,4 +222,53 @@ class JobControllerIntegrationTest {
 
         assertEquals(0, jobRepository.count());
     }
+
+    @Test
+    void testCreateJobWithIdempotencyKeyDeduplication() throws Exception {
+        CreateJobRequest request1 = new CreateJobRequest("Order Charge #441", JobType.COMPUTE, 2, "{\"amount\":100}", 3, 0, "idem-order-441");
+
+        // First submission creates the job
+        mockMvc.perform(post("/api/v1/jobs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request1)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.idempotencyKey").value("idem-order-441"));
+
+        assertEquals(1, jobRepository.count());
+        Job firstJob = jobRepository.findAll().get(0);
+
+        // Second submission with same idempotencyKey returns the same job without creating duplicate
+        CreateJobRequest request2 = new CreateJobRequest("Order Charge #441 (Retry)", JobType.COMPUTE, 2, "{\"amount\":100}", 3, 0, "idem-order-441");
+        mockMvc.perform(post("/api/v1/jobs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request2)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(firstJob.getId()))
+                .andExpect(jsonPath("$.idempotencyKey").value("idem-order-441"));
+
+        assertEquals(1, jobRepository.count());
+    }
+
+    @Test
+    void testGetJobDagHierarchy() throws Exception {
+        Job step1 = new Job("Pipeline Root Step", JobType.DATA_PROCESSING, 1, "{\"pipelineStep\":1}", 3);
+        jobRepository.save(step1);
+
+        Job step2 = new Job("Pipeline Child Step", JobType.REPORT_GENERATION, 1,
+                "{\"dependsOnJobId\":\"" + step1.getId() + "\",\"pipelineStep\":2}", 3);
+        jobRepository.save(step2);
+
+        mockMvc.perform(get("/api/v1/jobs/" + step2.getId() + "/dag"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currentJob.id").value(step2.getId()))
+                .andExpect(jsonPath("$.parentJob.id").value(step1.getId()))
+                .andExpect(jsonPath("$.pipelineStep").value(2));
+
+        mockMvc.perform(get("/api/v1/jobs/" + step1.getId() + "/dag"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currentJob.id").value(step1.getId()))
+                .andExpect(jsonPath("$.parentJob").doesNotExist())
+                .andExpect(jsonPath("$.downstreamJobs", hasSize(1)))
+                .andExpect(jsonPath("$.downstreamJobs[0].id").value(step2.getId()));
+    }
 }

@@ -101,10 +101,9 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Viva Concept: Client-Side Throttling
-  // When a burst of 100 jobs runs, 100 SSE events arrive in quick succession.
-  // If the browser fired 100 network requests to refetch table data, it would freeze the UI thread.
-  // We throttle table refetches to at most once per 350ms, keeping the UI at a responsive 60 FPS.
+  // Telemetry: Client-Side Event Throttling
+  // When a burst of 100 jobs runs, SSE events arrive in rapid succession.
+  // Throttling table refetches to at most once per 350ms prevents UI thread congestion and maintains 60 FPS.
   const refreshTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scheduleThrottledRefresh = useCallback(() => {

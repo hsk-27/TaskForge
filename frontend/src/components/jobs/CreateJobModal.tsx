@@ -12,6 +12,7 @@ interface CreateJobModalProps {
     payload?: string;
     maxAttempts: number;
     delaySeconds?: number;
+    idempotencyKey?: string;
   }) => Promise<void>;
 }
 
@@ -21,6 +22,7 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ isOpen, onClose,
   const [priority, setPriority] = useState(0);
   const [maxAttempts, setMaxAttempts] = useState(3);
   const [delaySeconds, setDelaySeconds] = useState(0);
+  const [idempotencyKey, setIdempotencyKey] = useState('');
   const [payload, setPayload] = useState('{"limit": 5000}');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +38,15 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ isOpen, onClose,
     setError(null);
     setSubmitting(true);
     try {
-      await onSubmit({ name, jobType, priority, maxAttempts, payload, delaySeconds: delaySeconds > 0 ? delaySeconds : undefined });
+      await onSubmit({
+        name,
+        jobType,
+        priority,
+        maxAttempts,
+        payload,
+        delaySeconds: delaySeconds > 0 ? delaySeconds : undefined,
+        idempotencyKey: idempotencyKey.trim() || undefined,
+      });
       onClose();
     } catch (err: any) {
       setError(err.message || 'Failed to submit job');
@@ -133,6 +143,21 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ isOpen, onClose,
               />
               <span className="text-[10px] text-zinc-500 mt-0.5 block">0 = immediate execution</span>
             </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-zinc-300 font-medium text-xs">Idempotency Key (Optional)</label>
+              <span className="text-[10px] text-zinc-500 font-mono">Deduplication</span>
+            </div>
+            <input
+              type="text"
+              value={idempotencyKey}
+              onChange={(e) => setIdempotencyKey(e.target.value)}
+              placeholder="e.g. order-settle-txn-982314"
+              className="w-full px-3 py-1.5 bg-[#08090a] border border-white/[0.08] rounded-md text-zinc-100 font-mono text-xs focus:outline-none focus:border-indigo-500 transition-colors"
+            />
+            <span className="text-[10px] text-zinc-500 mt-0.5 block">Guarantees exactly-once ingestion; duplicate requests return existing task</span>
           </div>
 
           <div>

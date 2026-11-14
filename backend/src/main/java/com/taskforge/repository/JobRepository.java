@@ -48,6 +48,8 @@ public interface JobRepository extends JpaRepository<Job, String> {
     @Query("SELECT j FROM Job j WHERE j.payload LIKE CONCAT('%', :parentJobId, '%')")
     List<Job> findDependentJobs(@Param("parentJobId") String parentJobId);
 
+    Optional<Job> findByIdempotencyKey(String idempotencyKey);
+
     long countByStatus(JobStatus status);
 
     long countByCompletedAtAfter(Instant cutoff);

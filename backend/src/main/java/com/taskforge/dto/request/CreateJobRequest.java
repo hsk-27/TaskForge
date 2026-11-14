@@ -27,10 +27,17 @@ public record CreateJobRequest(
 
         @Min(value = 0, message = "Delay seconds cannot be negative")
         @Max(value = 86400, message = "Delay seconds cannot exceed 86400 (24h)")
-        Integer delaySeconds
+        Integer delaySeconds,
+
+        @Size(max = 128, message = "Idempotency key cannot exceed 128 characters")
+        String idempotencyKey
 ) {
     public CreateJobRequest(String name, JobType jobType, Integer priority, String payload, Integer maxAttempts) {
-        this(name, jobType, priority, payload, maxAttempts, 0);
+        this(name, jobType, priority, payload, maxAttempts, 0, null);
+    }
+
+    public CreateJobRequest(String name, JobType jobType, Integer priority, String payload, Integer maxAttempts, Integer delaySeconds) {
+        this(name, jobType, priority, payload, maxAttempts, delaySeconds, null);
     }
 
     public int resolvedPriority() {

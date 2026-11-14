@@ -239,6 +239,20 @@ public class AssistantService {
                     .append("- When the node reboots, `recoverInterruptedJobs()` runs in `@PostConstruct`.\n")
                     .append("- It scans `jobs` for records left stranded in `RUNNING` status from the previous crash.\n")
                     .append("- It marks the interrupted attempt as `INTERRUPTED` in `job_attempts`, writes the timestamp, and reschedules the job for retry if attempts remain, or fails it gracefully.");
+        } else if (msg.contains("idempotency") || msg.contains("deduplication") || msg.contains("duplicate")) {
+            reply.append("### Distributed Idempotency & Deduplication Engine\n\n")
+                    .append("**Exactly-Once Ingestion Invariants:**\n\n")
+                    .append("- Tasks may declare a unique `idempotencyKey`.\n")
+                    .append("- If a client re-submits due to network timeout, TaskForge resolves the key via `idx_jobs_idempotency_key`.\n")
+                    .append("- Duplicate execution is prevented, a `JOB_DEDUPLICATED` event is emitted, and the existing job is returned.");
+        } else if (msg.contains("dag") || msg.contains("pipeline") || msg.contains("cascade") || msg.contains("dependency")) {
+            reply.append("### Directed Acyclic Graph (DAG) Pipeline Orchestration\n\n")
+                    .append("**Sequential & Dependency Orchestration Invariants:**\n\n")
+                    .append("1. **Prerequisite Declaration:** Tasks declare `\"dependsOnJobId\": \"<parent-uuid>\"` in their payload.\n")
+                    .append("2. **Deferred Enqueuing:** Downstream steps remain in `QUEUED` until the parent step succeeds.\n")
+                    .append("3. **Post-Commit Handoff:** In `recordSuccess()`, dependent steps are enqueued only after the parent commit.\n")
+                    .append("4. **Cascading Failure Aborts:** If an upstream step fails or cancels, `cascadeAbortDependents()` recursively aborts descendants.\n")
+                    .append("5. **Lineage Endpoint:** Query `GET /api/v1/jobs/{id}/dag` for parent, children, and step index.");
         } else {
             reply.append("### TaskForge SRE & Reliability Copilot (Incident Triage Mode)\n\n")
                     .append("Ready to triage incidents, analyze DLQ root causes, and audit cluster fault tolerance.\n\n")
@@ -374,6 +388,26 @@ public class AssistantService {
                     .append("  \"isSequential\": false\n")
                     .append("}\n")
                     .append("```");
+        } else if (msg.contains("idempotency") || msg.contains("deduplication") || msg.contains("duplicate")) {
+            reply.append("### Distributed Idempotency & Deduplication Engine\n\n")
+                    .append("**Single-Job Ingestion (`POST /api/v1/jobs`):**\n\n")
+                    .append("```bash\n")
+                    .append("curl -X POST http://localhost:8080/api/v1/jobs \\\n")
+                    .append("  -H \"Content-Type: application/json\" \\\n")
+                    .append("  -d '{\n")
+                    .append("    \"name\": \"Financial Settlement #9021\",\n")
+                    .append("    \"jobType\": \"DATA_PROCESSING\",\n")
+                    .append("    \"idempotencyKey\": \"tx-settlement-9021-batch\",\n")
+                    .append("    \"payload\": \"{\\\"amount\\\": 5000}\"\n")
+                    .append("  }'\n")
+                    .append("```\n\n")
+                    .append("**Behavior:** Re-submitting the same `idempotencyKey` returns the existing job with zero duplicate execution.");
+        } else if (msg.contains("dag") || msg.contains("pipeline") || msg.contains("workflow") || msg.contains("dependency")) {
+            reply.append("### Directed Acyclic Graph (DAG) Pipeline Orchestration\n\n")
+                    .append("- **Prerequisite Declaration:** Tasks declare `\"dependsOnJobId\": \"<parent-uuid>\"` in payload.\n")
+                    .append("- **Post-Commit Enqueue:** Dependent steps are enqueued only after the prerequisite transaction commits.\n")
+                    .append("- **Cascading Abort:** If parent step fails or cancels, descendants abort cleanly without orphaned tasks.\n")
+                    .append("- **DAG Hierarchy API:** Query `GET /api/v1/jobs/{id}/dag` for parent, children, and step lineage.");
         } else {
             reply.append("### TaskForge Developer & Architecture Assistant\n\n")
                     .append("Ask me about endpoint contracts, JSON payload schemas, concurrency primitives, or testing strategies.\n\n")

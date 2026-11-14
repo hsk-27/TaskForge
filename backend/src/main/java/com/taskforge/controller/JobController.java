@@ -6,6 +6,7 @@ import com.taskforge.dto.request.BatchJobRequest;
 import com.taskforge.dto.request.CreateJobRequest;
 import com.taskforge.dto.response.BatchJobResponse;
 import com.taskforge.dto.response.JobAttemptResponse;
+import com.taskforge.dto.response.JobDagResponse;
 import com.taskforge.dto.response.JobEventResponse;
 import com.taskforge.dto.response.JobResponse;
 import com.taskforge.service.JobService;
@@ -92,6 +93,12 @@ public class JobController {
     @Operation(summary = "Get detailed information for a specific job")
     public ResponseEntity<JobResponse> getJob(@PathVariable String id) {
         return ResponseEntity.ok(jobService.getJob(id));
+    }
+
+    @GetMapping("/{id}/dag")
+    @Operation(summary = "Get DAG dependency hierarchy (prerequisites and downstream jobs) for a job")
+    public ResponseEntity<JobDagResponse> getJobDag(@PathVariable String id) {
+        return ResponseEntity.ok(jobService.getJobDag(id));
     }
 
     @GetMapping("/{id}/attempts")

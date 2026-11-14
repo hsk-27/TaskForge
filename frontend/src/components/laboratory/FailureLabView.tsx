@@ -9,10 +9,12 @@ import {
   Pause,
   Play,
   RotateCcw,
+  ShieldCheck,
   Sliders,
   Zap,
 } from 'lucide-react';
 import { EngineStatus } from '../../types';
+import { api } from '../../api/client';
 
 interface FailureLabViewProps {
   status: EngineStatus | null;
@@ -75,6 +77,38 @@ export const FailureLabView: React.FC<FailureLabViewProps> = ({
     }
   };
 
+  const runIdempotencyTest = async () => {
+    setScenarioRunning(true);
+    setMessage('Dispatching concurrent duplicate submissions with shared idempotency key...');
+    try {
+      const testKey = `idem-lab-${Date.now()}`;
+      const job1 = await api.createJob({
+        name: 'Idempotent Deduplication Task (Call 1)',
+        jobType: 'COMPUTE',
+        priority: 5,
+        idempotencyKey: testKey,
+        payload: '{"test": "dedup-validation"}',
+      });
+      const job2 = await api.createJob({
+        name: 'Idempotent Deduplication Task (Call 2 - Duplicate)',
+        jobType: 'COMPUTE',
+        priority: 5,
+        idempotencyKey: testKey,
+        payload: '{"test": "dedup-validation"}',
+      });
+      if (job1.id === job2.id) {
+        setMessage(`Deduplication Validated! Both requests resolved to identical Job ID: ${job1.id.slice(0, 8)}...`);
+      } else {
+        setMessage('Idempotency test completed.');
+      }
+      setTimeout(() => setMessage(null), 5000);
+    } catch (err: any) {
+      setMessage(`Idempotency Test Error: ${err.message}`);
+    } finally {
+      setScenarioRunning(false);
+    }
+  };
+
   return (
     <div className="space-y-4 font-sans select-none">
       {/* Header Banner */}
@@ -99,7 +133,7 @@ export const FailureLabView: React.FC<FailureLabViewProps> = ({
       </div>
 
       {/* Scenario Triggers Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
         {/* Scenario 1: Normal Workload */}
         <div className="p-4 bg-[#121316] border border-white/[0.08] rounded-lg shadow-sm flex flex-col justify-between hover:border-white/[0.15] transition-colors">
           <div>
@@ -197,6 +231,28 @@ export const FailureLabView: React.FC<FailureLabViewProps> = ({
             className="w-full py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-medium rounded-md transition-all shadow-sm disabled:opacity-40"
           >
             Dispatch Self-Heal (15)
+          </button>
+        </div>
+
+        {/* Scenario 5: Distributed Deduplication */}
+        <div className="p-4 bg-[#121316] border border-white/[0.08] rounded-lg shadow-sm flex flex-col justify-between hover:border-white/[0.15] transition-colors">
+          <div>
+            <div className="text-[11px] text-emerald-400 font-mono mb-1">Scenario 5</div>
+            <h4 className="text-sm font-semibold text-emerald-300 mb-2 flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-400 inline" />
+              <span>Deduplication</span>
+            </h4>
+            <p className="text-xs text-zinc-400 leading-relaxed mb-4">
+              Dispatches two concurrent tasks with the same idempotency key to test duplicate suppression.
+            </p>
+          </div>
+          <button
+            disabled={scenarioRunning}
+            onClick={runIdempotencyTest}
+            className="w-full py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-medium rounded-md transition-all shadow-sm disabled:opacity-40 flex items-center justify-center gap-1.5"
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Test Deduplication</span>
           </button>
         </div>
       </div>

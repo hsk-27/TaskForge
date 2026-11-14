@@ -61,10 +61,10 @@ public class AssistantController {
             );
             default -> List.of(
                     "Show REST API endpoints with curl examples",
+                    "How does TaskForge enforce idempotency and deduplication?",
+                    "How are DAG pipelines orchestrated and traversed?",
                     "Show JSON payload schemas for single and batch jobs",
-                    "How does the bounded JobQueue enforce backpressure?",
-                    "Submit 5 test compute jobs",
-                    "Explain cooperative thread interruption in handlers"
+                    "How does the bounded JobQueue enforce backpressure?"
             );
         };
         return ResponseEntity.ok(suggestions);

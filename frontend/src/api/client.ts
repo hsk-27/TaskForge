@@ -1,9 +1,8 @@
 /**
- * Frontend REST Client for TaskForge Backend
+ * Frontend REST Client for TaskForge Enterprise Engine
  *
- * Viva Note:
  * Communicates with Spring Boot backend at `/api/v1` using native browser `fetch()` and `async/await`.
- * Handles HTTP error status codes (400 Bad Request, 404 Not Found, 409 Conflict, 429 Backpressure)
+ * Handles standard HTTP error status codes (400 Bad Request, 404 Not Found, 409 Conflict, 429 Backpressure)
  * by extracting the backend's GlobalExceptionHandler JSON message and throwing a descriptive Error.
  */
 import {
@@ -13,6 +12,7 @@ import {
   EngineStatus,
   Job,
   JobAttempt,
+  JobDagInfo,
   JobEvent,
   PaginatedResponse,
 } from '../types';
@@ -72,6 +72,10 @@ export const api = {
     return request<Job>(`/jobs/${id}`);
   },
 
+  async getJobDag(id: string): Promise<JobDagInfo> {
+    return request<JobDagInfo>(`/jobs/${id}/dag`);
+  },
+
   async getAttempts(jobId: string): Promise<JobAttempt[]> {
     return request<JobAttempt[]>(`/jobs/${jobId}/attempts`);
   },
@@ -91,6 +95,7 @@ export const api = {
     payload?: string;
     maxAttempts?: number;
     delaySeconds?: number;
+    idempotencyKey?: string;
   }): Promise<Job> {
     return request<Job>('/jobs', {
       method: 'POST',
