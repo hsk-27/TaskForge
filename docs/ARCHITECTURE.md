@@ -216,9 +216,7 @@ taskforge/
 │   ├── CONCURRENCY.md        # Concurrency primitives, locks, thread safety
 │   ├── RECOVERY.md           # Interruption recovery & crash reconciliation
 │   ├── API.md                # REST API endpoints and SSE event schemas
-│   ├── TESTING.md            # Test strategy, execution, and coverage
-│   ├── LEARNING_GUIDE.md     # Progressive guide for beginners in Java systems
-│   └── KNOWN_LIMITATIONS.md  # Explicit non-guarantees and design trade-offs
+│   └── TESTING.md            # Test strategy, execution, and coverage
 ├── backend/                  # Spring Boot 3.3 / Java 21 Backend
 │   ├── Dockerfile            # Multi-stage Maven + Eclipse Temurin 21 JRE
 │   ├── pom.xml               # Maven dependencies and build plugins

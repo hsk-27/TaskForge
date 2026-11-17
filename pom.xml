@@ -1,38 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.taskforge</groupId>
-    <artifactId>taskforge-engine</artifactId>
-    <version>1.0.0-M1</version>
-    <packaging>jar</packaging>
+    <artifactId>taskforge-parent</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
 
-    <name>TaskForge Engine - Milestone 1</name>
-    <description>Single-process Java job execution engine built with standard concurrency primitives</description>
+    <name>TaskForge Enterprise</name>
+    <description>Distributed Workflow Orchestration and Resilience Platform</description>
+
+    <modules>
+        <module>backend</module>
+    </modules>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
     </properties>
-
-    <!-- Milestone 1 uses standard Java LTS libraries exclusively. No third-party dependencies. -->
-    <dependencies>
-    </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
-                <configuration>
-                    <release>21</release>
-                    <compilerArgs>
-                        <arg>-Xlint:all</arg>
-                    </compilerArgs>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 </project>
