@@ -18,7 +18,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/assistant")
-@Tag(name = "Assistant", description = "End-to-end intelligent assistant for viva defense, operator actions, and developer queries")
+@Tag(name = "Assistant", description = "TaskForge Ops Copilot for SRE triage, cluster operations, and developer API queries")
 public class AssistantController {
 
     private final AssistantService assistantService;

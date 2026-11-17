@@ -12,16 +12,15 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * CS Theory: Real-Time Event Streaming via Server-Sent Events (SSE)
+ * Real-Time Telemetry Streaming via Server-Sent Events (SSE)
  *
- * Viva Question: "Why did you use SSE instead of WebSockets or Short Polling?"
- * Viva Answer:
- * 1. Over Short Polling: Polling sends repeated HTTP requests every second, wasting bandwidth
- *    and CPU cycles with redundant headers and database queries.
- * 2. Over WebSockets: WebSockets require a protocol upgrade to a custom bidirectional TCP connection.
- *    For a monitoring console, communication is strictly server-to-client (push telemetry).
- *    SSE runs over standard HTTP, traverses proxies and corporate firewalls without special configuration,
- *    and browsers natively support automatic reconnection via the EventSource API.
+ * Architectural Evaluation: SSE vs WebSockets vs Short Polling
+ * 1. Over Short Polling: Polling sends repeated HTTP requests, causing connection overhead
+ *    and unnecessary database amplification.
+ * 2. Over WebSockets: For a developer monitoring console, communication is strictly server-to-client
+ *    (unidirectional telemetry push). SSE operates over standard HTTP/1.1 and HTTP/2, natively traverses
+ *    corporate proxies and API gateways without custom protocol upgrades, and browsers natively handle
+ *    reconnection via the EventSource API.
  *
  * Concurrency Note:
  * Uses CopyOnWriteArrayList so multiple worker threads can broadcast events concurrently

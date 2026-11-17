@@ -1,6 +1,6 @@
 # Contributing to TaskForge
 
-Thank you for your interest in contributing to **TaskForge**! We welcome contributions from developers, researchers, and students.
+Thank you for your interest in contributing to **TaskForge**! We welcome contributions from engineers, researchers, and distributed systems enthusiasts.
 
 ---
 

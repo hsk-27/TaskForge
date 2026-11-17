@@ -50,14 +50,14 @@ class AssistantControllerIntegrationTest {
     }
 
     @Test
-    void testChatStudentPersonaVivaQuery() throws Exception {
-        ChatRequest request = new ChatRequest("Explain the producer consumer pattern in TaskForge", "STUDENT", null);
+    void testChatSreTriageQuery() throws Exception {
+        ChatRequest request = new ChatRequest("Explain the producer consumer pattern in TaskForge", "SRE", null);
 
         mockMvc.perform(post("/api/v1/assistant/chat")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.persona", is("STUDENT")))
+                .andExpect(jsonPath("$.persona", is("SRE")))
                 .andExpect(jsonPath("$.reply", containsString("Producer-Consumer Architecture")))
                 .andExpect(jsonPath("$.reply", containsString("JobQueue.java")))
                 .andExpect(jsonPath("$.systemSnapshot.activeWorkers", notNullValue()));

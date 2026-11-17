@@ -709,11 +709,13 @@ public class ExecutionEngine {
         /**
          * Core Worker Execution Flow (Two-Phase Transaction Pattern)
          *
-         * Viva Question: "Why is task execution not inside a @Transactional method?"
-         * Viva Answer: "If execution takes 5 seconds, holding a database connection for 5 seconds
-         * causes HikariCP connection pool starvation. We claim the job in Transaction 1 (~2ms),
-         * release the connection, run the heavy job logic outside DB locks, and save the result
-         * in Transaction 2 (~2ms)."
+         * Architectural Invariant: Decoupled Two-Phase Transaction Model
+         *
+         * Task execution deliberately occurs outside any database transaction context.
+         * Holding an open database connection during arbitrary task execution (100ms - 30s)
+         * would rapidly exhaust the HikariCP connection pool and block the web tier.
+         * We claim the job in Phase 1 (short transaction ~2ms), release the connection,
+         * execute the workload handler outside DB locks, and finalize the outcome in Phase 2 (~2ms).
          */
         private void processJob(String jobId) {
             ClaimedJob claim = null;

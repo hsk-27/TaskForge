@@ -7,10 +7,10 @@ import com.taskforge.domain.JobType;
 import org.springframework.stereotype.Component;
 
 /**
- * CS Theory: Chaos Engineering & Deterministic Fault Injection
+ * Chaos Engineering & Deterministic Fault Injection Handler
  *
  * Implements deterministic fault scenarios (network flaps, uncaught exceptions, rate limit rolls).
- * This enables the 'Failure Lab' where students can test and demonstrate:
+ * This enables the 'Failure Lab' where operators can test and validate resilience guarantees:
  * 1. Transient Flap: Job fails on attempts 1 and 2, but succeeds on attempt 3.
  * 2. Unrecoverable Crash: Job fails all attempts, moving permanently into the Dead Letter Queue (DLQ).
  * 3. Exponential Backoff Verification: Confirms retry delays double with each successive attempt.

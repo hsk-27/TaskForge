@@ -6,10 +6,10 @@ import jakarta.validation.constraints.NotBlank;
  * Payload for submitting a query to the TaskForge Intelligent Assistant.
  *
  * @param message The user's query or command
- * @param persona The user persona / mode: "STUDENT" (Viva prep & CS theory),
- *                "OPERATOR" (DevOps, health diagnostics & actions),
- *                "DEVELOPER" (REST API, curl & internals),
- *                or "NOVICE" (Plain English & analogies)
+ * @param persona The user persona / mode: "SRE" (Root cause analysis & incident triage),
+ *                "OPERATOR" (Fleet health diagnostics & cluster actions),
+ *                "DEVELOPER" (REST API, curl & SDK integration),
+ *                or "AUDITOR" (SLA latency, compliance & transaction boundaries)
  * @param actionId Optional directive ID to execute directly (e.g. "REPLAY_DLQ", "SUBMIT_SAMPLE", "CANCEL_PENDING")
  */
 public record ChatRequest(

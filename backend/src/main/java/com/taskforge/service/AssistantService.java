@@ -28,11 +28,11 @@ import java.util.Map;
  * Intelligent domain assistant for TaskForge.
  *
  * Provides tailored responses, real-time diagnostic introspection, and one-click
- * cluster actions for four distinct user personas:
- * 1. STUDENT (B.Tech Capstone Viva Defense & CS Theory)
+ * cluster actions for four distinct operational personas:
+ * 1. SRE (Incident Triage, Root Cause Analysis & Dead Letter Queue diagnostics)
  * 2. OPERATOR (DevOps, Cluster Health, Metrics, and Maintenance Actions)
  * 3. DEVELOPER (REST API specs, JSON payloads, Concurrency Internals)
- * 4. NOVICE (Plain English explanations and analogies)
+ * 4. AUDITOR (SLA Compliance, ACID Transaction Guarantees & Lock Audits)
  */
 @Service
 public class AssistantService {

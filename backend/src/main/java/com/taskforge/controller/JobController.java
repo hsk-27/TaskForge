@@ -55,7 +55,7 @@ public class JobController {
     /**
      * REST Semantics: 202 Accepted
      * Submits a batch of jobs for asynchronous processing.
-     * Viva Note: We return 202 Accepted rather than 200 OK because the batch request has been
+     * Architectural Note: We return 202 Accepted rather than 200 OK because the batch request has been
      * accepted for processing, but completion occurs asynchronously in background worker threads.
      */
     @PostMapping("/batch")

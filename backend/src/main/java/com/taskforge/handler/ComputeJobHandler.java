@@ -7,15 +7,14 @@ import com.taskforge.domain.JobType;
 import org.springframework.stereotype.Component;
 
 /**
- * CS Theory: CPU-Bound Workloads & Cooperative Thread Interruption
+ * CPU-Bound Workload Handler & Cooperative Thread Interruption
  *
  * Simulates a CPU-heavy computation (prime number search).
  *
- * Viva Note on Cooperative Thread Interruption:
- * Java deprecated Thread.stop() because it unsafely forces a thread to stop, releasing monitor locks
- * and leaving data in inconsistent states.
- * Instead, modern Java uses Cooperative Cancellation: when an operator cancels a job,
- * we call thread.interrupt(). Inside this loop, we explicitly check Thread.currentThread().isInterrupted()
+ * Cooperative Thread Interruption Specification:
+ * Modern JVM execution engines rely on cooperative cancellation rather than forced termination.
+ * When an operator cancels a running task or the SLA watchdog triggers timeout remediation,
+ * the engine calls thread.interrupt(). The compute loop inspects Thread.currentThread().isInterrupted()
  * so the worker can terminate gracefully without corrupting state.
  */
 @Component

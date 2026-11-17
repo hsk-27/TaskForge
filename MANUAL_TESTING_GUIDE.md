@@ -209,22 +209,22 @@ npm run dev
 
 ---
 
-### Test 11: ForgeBot Multi-Persona Assistant
-**Goal:** Verify offline, zero-API intelligent assistant guidance and actions.
+### Test 11: TaskForge Ops Copilot
+**Goal:** Verify offline, zero-API intelligent cluster reliability copilot guidance and remediation actions.
 
-1. Press `Ctrl + /` (or click the bottom-right chat bubble icon) to open ForgeBot.
+1. Press `Ctrl + /` (or click the **Ops Copilot** button in the header) to open the copilot drawer.
 2. **Test Persona Switching:**
-   - Click **"Student / Viva Prep"**:
-     - Type: *"Explain how connection pool starvation is avoided."*
-     - Verify response explains two-phase transaction decoupling, short claim transaction vs out-of-transaction handler execution.
-   - Click **"DevOps / Operator"**:
+   - Click **"SRE & Incident Triage"**:
+     - Type: *"Why are jobs failing in the Dead Letter Queue?"*
+     - Verify response provides forensic root cause analysis, retry backoff jitter analysis, and one-click remediation pills (e.g. "Replay DLQ").
+   - Click **"Cluster Operations"**:
      - Type: *"What is the current health of the system?"*
      - Verify response provides live active workers, queue size, and actionable execution buttons (e.g. "Run 10 Smoke Jobs", "Scale Workers", "Replay DLQ").
      - Click an action pill (e.g. **"Run 10 Smoke Jobs"**):
        - Notice 10 jobs are automatically submitted and processed in the background!
-   - Click **"Plain English"**:
-     - Type: *"How does this work in simple terms?"*
-     - Verify it uses intuitive kitchen/chef analogies.
+   - Click **"API & Integration"**:
+     - Type: *"Show me the curl command to submit an idempotent job."*
+     - Verify it provides accurate cURL and JSON payloads with `idempotencyKey`.
 
 ---
 
@@ -263,4 +263,4 @@ npm run dev
 | **Backpressure** | In-memory queue never exceeds capacity; returns HTTP 429 when full. | Verified |
 | **Heartbeat SSE** | Zero polling; disconnects cleanly remove emitters without memory leaks. | Verified |
 | **Zero External AI** | Chatbot assistant operates 100% offline with zero cloud API keys or fees. | Verified |
-| **Defensible Code** | Student-level, human-written design patterns with zero robotic clichés. | Verified |
+| **Production Architecture** | Enterprise-grade, clean domain-driven design with explicit transaction decoupling. | Verified |

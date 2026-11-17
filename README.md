@@ -185,8 +185,7 @@ TaskForge/
 │   └── STATE_MACHINE.md                 # State Transitions & Terminal Guarantees
 ├── docker-compose.yml                   # Production Multi-Container Orchestration
 ├── Dockerfile                           # Backend Multi-Stage Container Build
-├── MANUAL_TESTING_GUIDE.md              # Step-by-Step Manual Verification Walkthrough
-├── VIVA_DEFENSE_GUIDE.md                # Final-Year Capstone Defense & Oral Viva Blueprint
+├── MANUAL_TESTING_GUIDE.md              # Operational Verification & Testing Runbook
 └── README.md                            # Primary Documentation
 ```
 
@@ -298,41 +297,23 @@ npm run build
 
 ---
 
-## Step-by-Step GitHub Upload Guide
+## Operational Documentation
 
-Follow either of the two standard methods below to publish this repository to your GitHub account:
+Comprehensive architectural and engineering runbooks are maintained in the [`docs/`](docs/) directory:
 
-### Method 1: Git Push (Fastest & Recommended)
-
-Open PowerShell inside the `TaskForge` root directory:
-
-```powershell
-# 1. Create a new empty repository on https://github.com/new named "TaskForge"
-# 2. Add your GitHub repository as the origin remote:
-git remote add origin https://github.com/<YOUR_GITHUB_USERNAME>/TaskForge.git
-
-# 3. Ensure your branch is named main:
-git branch -M main
-
-# 4. Push the complete codebase and history:
-git push -u origin main
-```
+| Document | Focus Area |
+| :--- | :--- |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Component architecture, decoupled two-phase transactions, and SSE pipeline |
+| [`docs/API.md`](docs/API.md) | Complete OpenAPI / REST specification, request/response schemas, and SSE contracts |
+| [`docs/CONCURRENCY.md`](docs/CONCURRENCY.md) | Thread safety guarantees, worker loops, lock-free queues, and CAS semantics |
+| [`docs/STATE_MACHINE.md`](docs/STATE_MACHINE.md) | Task lifecycle states, transition matrices, and terminal state invariants |
+| [`MANUAL_TESTING_GUIDE.md`](MANUAL_TESTING_GUIDE.md) | End-to-end verification runbook covering fault injection and resilience testing |
 
 ---
 
-### Method 2: GitHub Web Browser Upload
+## Contributing
 
-If you prefer uploading through the GitHub web interface without using the git CLI:
-
-> [!IMPORTANT] Avoid Dragging `node_modules` or `target`
-> The GitHub Web interface enforces a strict **100 files limit** per upload and will reject or crash if you attempt to drag the `node_modules` folder (which contains thousands of dependency files). 
-
-To upload via your web browser:
-1. Ensure build output and dependency folders are excluded. All your code is committed to Git, and a clean source archive is provided: `TaskForge-Source.zip`.
-2. Navigate to [https://github.com/new](https://github.com/new) in your browser.
-3. Name your repository **`TaskForge`** and click **Create repository**.
-4. On the quick setup page, click the **"uploading an existing file"** link.
-5. Drag and drop the clean project files (or use GitHub Desktop) and click **Commit changes**.
+Contributions, issues, and feature requests are welcome. Please refer to [`CONTRIBUTING.md`](CONTRIBUTING.md) for branch naming conventions, pull request workflows, and code style guidelines.
 
 ---
 
